@@ -1,22 +1,33 @@
 package com.fooddelivery.identity.service;
 
-import com.fooddelivery.common.event.NotificationRequestEvent;
-import com.fooddelivery.common.service.NotificationRouterService;
+import com.fooddelivery.identity.port.CachePort;
+import com.fooddelivery.identity.port.EventPublisherPort;
 import com.fooddelivery.identity.entity.AppUser;
+import com.fooddelivery.identity.entity.UserRole;
 import com.fooddelivery.identity.repository.UserRepository;
+import com.fooddelivery.identity.repository.UserRoleRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Duration;
+import java.util.Base64;
+import java.util.stream.Collectors;
 import java.util.Date;
+import java.util.List;
+import org.springframework.core.io.Resource;
+import org.springframework.util.FileCopyUtils;
+import jakarta.annotation.PostConstruct;
 
 @Slf4j
 @Service
@@ -24,58 +35,86 @@ import java.util.Date;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final NotificationRouterService notificationRouterService;
-    private final StringRedisTemplate redisTemplate;
+    private final UserRoleRepository userRoleRepository;
+    private final EventPublisherPort eventPublisherPort;
+    private final CachePort cachePort;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    @Value("classpath:certs/private.pem")
+    private Resource privateKeyResource;
 
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
+    
+    private PrivateKey privateKey;
 
-    public void initiateLogin(String phoneNumber, String role) {
-        String otp = String.format("%06d", secureRandom.nextInt(999999));
-        
-        redisTemplate.opsForValue().set("OTP:" + phoneNumber + ":" + role, otp, Duration.ofMinutes(5));
-
-        NotificationRequestEvent event = NotificationRequestEvent.builder()
-                .userId(null) 
-                .explicitRecipient(phoneNumber)
-                .channel(com.fooddelivery.common.enums.ChannelType.SMS)
-                .build();
-                
-        notificationRouterService.routeNotification(event);
-        log.info("Initiated login for {}, role {}, OTP generated.", phoneNumber, role);
+    @PostConstruct
+    public void init() {
+        try {
+            byte[] keyBytes = FileCopyUtils.copyToByteArray(privateKeyResource.getInputStream());
+            String keyString = new String(keyBytes, StandardCharsets.UTF_8)
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s", "");
+            
+            byte[] decodedKey = Base64.getDecoder().decode(keyString);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            this.privateKey = keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            log.error("Failed to load RSA private key", e);
+            throw new RuntimeException("Could not load RSA private key", e);
+        }
     }
 
-    public String verifyOtp(String phoneNumber, String otp, String role) {
-        String cacheKey = "OTP:" + phoneNumber + ":" + role;
-        String cachedOtp = redisTemplate.opsForValue().get(cacheKey);
+    public void initiateLogin(String phoneNumber, String serviceName) {
+        String otp = String.format("%06d", secureRandom.nextInt(999999));
+        
+        cachePort.put("OTP:" + phoneNumber + ":" + serviceName, otp, 5);
+
+        eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS");
+        log.info("Initiated login for {}, service {}, OTP generated.", phoneNumber, serviceName);
+    }
+
+    public String verifyOtp(String phoneNumber, String otp, String serviceName) {
+        String cacheKey = "OTP:" + phoneNumber + ":" + serviceName;
+        String cachedOtp = cachePort.get(cacheKey);
         
         if (cachedOtp != null && cachedOtp.equals(otp)) {
-            redisTemplate.delete(cacheKey);
+            cachePort.delete(cacheKey);
             
-            AppUser user = userRepository.findByPhoneNumberAndRole(phoneNumber, role)
+            AppUser user = userRepository.findByPhoneNumber(phoneNumber)
                     .orElseGet(() -> userRepository.save(AppUser.builder()
                             .phoneNumber(phoneNumber)
-                            .role(role)
                             .build()));
+                            
+            if ("CUSTOMER_APP".equals(serviceName)) {
+                List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
+                if (existingRoles.isEmpty()) {
+                    userRoleRepository.save(UserRole.builder()
+                        .user(user)
+                        .serviceName(serviceName)
+                        .roleName("CUSTOMER")
+                        .build());
+                }
+            }
             
-            return generateJwtToken(user);
+            return generateJwtToken(user, serviceName);
         }
         throw new IllegalArgumentException("Invalid or expired OTP");
     }
 
-    private String generateJwtToken(AppUser user) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    private String generateJwtToken(AppUser user, String serviceName) {
+        List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
+        List<String> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .claim("phone", user.getPhoneNumber())
-                .claim("role", user.getRole())
+                .claim("roles", roleNames)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(key, SignatureAlgorithm.HS256)
+                .signWith(privateKey, SignatureAlgorithm.RS256)
                 .compact();
     }
 }

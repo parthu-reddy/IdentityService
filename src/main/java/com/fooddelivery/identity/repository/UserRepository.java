@@ -6,5 +6,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<AppUser, UUID> {
-    Optional<AppUser> findByPhoneNumberAndRole(String phoneNumber, String role);
+    Optional<AppUser> findByPhoneNumber(String phoneNumber);
 }
