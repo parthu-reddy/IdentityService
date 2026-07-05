@@ -40,7 +40,7 @@ public class AuthService {
     private final CachePort cachePort;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("classpath:certs/private.pem")
+    @Value("${jwt.private-key.path:classpath:certs/private.pem}")
     private Resource privateKeyResource;
 
     @Value("${jwt.expiration}")

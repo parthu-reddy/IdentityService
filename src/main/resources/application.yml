@@ -1,29 +1,5 @@
-server:
-  port: 8085
-
 spring:
   application:
     name: identity-service
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/identity_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
-jwt:
-  expiration: 86400000 # 1 day in ms
+  config:
+    import: "optional:configserver:http://localhost:8888"
