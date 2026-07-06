@@ -27,4 +27,13 @@ public class RedisCacheAdapter implements CachePort {
     public void delete(String key) {
         redisTemplate.delete(key);
     }
+
+    @Override
+    public Long increment(String key, long expirationMinutes) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1L) {
+            redisTemplate.expire(key, Duration.ofMinutes(expirationMinutes));
+        }
+        return value;
+    }
 }

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import java.util.Base64;
 import java.util.stream.Collectors;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
 import jakarta.annotation.PostConstruct;
@@ -39,6 +41,8 @@ public class AuthService {
     private final EventPublisherPort eventPublisherPort;
     private final CachePort cachePort;
     private final SecureRandom secureRandom = new SecureRandom();
+    
+    // Redis based rate limiting will be used via CachePort
 
     @Value("${jwt.private-key.path:classpath:certs/private.pem}")
     private Resource privateKeyResource;
@@ -68,33 +72,64 @@ public class AuthService {
     }
 
     public void initiateLogin(String phoneNumber, String serviceName) {
+        String rateLimitKey = "RATELIMIT:INITIATE:" + phoneNumber;
+        Long attempts = cachePort.increment(rateLimitKey, 10);
+        
+        if (attempts != null && attempts > 3) {
+            log.warn("Rate limit exceeded for phone number: {}", phoneNumber);
+            throw new IllegalArgumentException("Too many login attempts. Please try again later.");
+        }
+
         String otp = String.format("%06d", secureRandom.nextInt(999999));
         
         cachePort.put("OTP:" + phoneNumber + ":" + serviceName, otp, 5);
 
-        eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS");
+        eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS", otp);
         log.info("Initiated login for {}, service {}, OTP generated.", phoneNumber, serviceName);
     }
 
+    @Transactional
     public String verifyOtp(String phoneNumber, String otp, String serviceName) {
+        String rateLimitKey = "RATELIMIT:VERIFY:" + phoneNumber;
+        Long attempts = cachePort.increment(rateLimitKey, 5);
+        
+        if (attempts != null && attempts > 5) {
+            log.warn("Brute force attempt detected for phone number: {}", phoneNumber);
+            cachePort.delete("OTP:" + phoneNumber + ":" + serviceName); // Invalidate the OTP
+            throw new IllegalArgumentException("Too many failed attempts. Please request a new OTP.");
+        }
+
         String cacheKey = "OTP:" + phoneNumber + ":" + serviceName;
         String cachedOtp = cachePort.get(cacheKey);
         
         if (cachedOtp != null && cachedOtp.equals(otp)) {
             cachePort.delete(cacheKey);
+            cachePort.delete(rateLimitKey); // Reset verification attempts on success
             
             AppUser user = userRepository.findByPhoneNumber(phoneNumber)
                     .orElseGet(() -> userRepository.save(AppUser.builder()
                             .phoneNumber(phoneNumber)
                             .build()));
                             
-            if ("CUSTOMER_APP".equals(serviceName)) {
+            String defaultRoleName = null;
+            if (serviceName != null) {
+                String normalized = serviceName.toUpperCase();
+                if (normalized.contains("CUSTOMER")) {
+                    defaultRoleName = "CUSTOMER";
+                } else if (normalized.contains("DELIVERY")) {
+                    defaultRoleName = "DELIVERY";
+                } else if (normalized.contains("RESTAURANT")) {
+                    defaultRoleName = "RESTAURANT";
+                }
+            }
+            
+            if (defaultRoleName != null) {
                 List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
                 if (existingRoles.isEmpty()) {
                     userRoleRepository.save(UserRole.builder()
                         .user(user)
                         .serviceName(serviceName)
-                        .roleName("CUSTOMER")
+                        .roleName(defaultRoleName)
                         .build());
                 }
             }

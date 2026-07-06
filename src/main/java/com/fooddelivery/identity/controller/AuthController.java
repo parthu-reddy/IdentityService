@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/internal/auth")
 @RequiredArgsConstructor
+@PreAuthorize("permitAll()")
 public class AuthController {
 
     private final AuthService authService;

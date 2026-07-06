@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/v1/internal/users")
 @RequiredArgsConstructor
@@ -39,7 +42,7 @@ public class InternalUserController {
     @PostMapping("/{id}/roles")
     public ResponseEntity<ApiResponse<String>> addRole(
             @PathVariable UUID id,
-            @RequestBody RoleRequestDTO request,
+            @Valid @RequestBody RoleRequestDTO request,
             @RequestHeader("X-Calling-Service") String callingService) {
             
         internalUserService.addRoleToUser(id, request.getRoleName(), callingService);
