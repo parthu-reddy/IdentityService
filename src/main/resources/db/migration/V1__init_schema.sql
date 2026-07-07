@@ -1,3 +1,4 @@
+-- Source: V1__init_identity_schema.sql
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL UNIQUE,
@@ -25,3 +26,5 @@ CREATE TABLE outbox_events (
     error_message TEXT,
     retry_count INTEGER DEFAULT 0
 );
+
+
