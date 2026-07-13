@@ -82,7 +82,8 @@ public class AuthService {
 
         String otp = String.format("%06d", secureRandom.nextInt(999999));
         
-        cachePort.put("OTP:" + phoneNumber + ":" + serviceName, otp, 5);
+        String normalizedServiceName = serviceName != null ? serviceName.toLowerCase() : "customer";
+        cachePort.put("OTP:" + phoneNumber + ":" + normalizedServiceName, otp, 5);
 
         eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS", otp);
         log.info("Initiated login for {}, service {}, OTP generated.", phoneNumber, serviceName);
@@ -99,7 +100,8 @@ public class AuthService {
             throw new IllegalArgumentException("Too many failed attempts. Please request a new OTP.");
         }
 
-        String cacheKey = "OTP:" + phoneNumber + ":" + serviceName;
+        String normalizedServiceName = serviceName != null ? serviceName.toLowerCase() : "customer";
+        String cacheKey = "OTP:" + phoneNumber + ":" + normalizedServiceName;
         String cachedOtp = cachePort.get(cacheKey);
         
         if (cachedOtp != null && cachedOtp.equals(otp)) {

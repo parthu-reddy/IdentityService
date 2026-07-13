@@ -29,6 +29,7 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
     private String phoneNumber;
+    private String name;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
