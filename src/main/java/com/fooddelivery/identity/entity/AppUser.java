@@ -30,6 +30,7 @@ public class AppUser {
     private UUID id;
     private String phoneNumber;
     private String name;
+    private String email;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

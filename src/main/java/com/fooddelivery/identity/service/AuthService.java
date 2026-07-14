@@ -80,7 +80,7 @@ public class AuthService {
             throw new IllegalArgumentException("Too many login attempts. Please try again later.");
         }
 
-        String otp = String.format("%06d", secureRandom.nextInt(999999));
+        String otp = String.format("%06d", secureRandom.nextInt(1000000));
         
         String normalizedServiceName = serviceName != null ? serviceName.toLowerCase() : "customer";
         cachePort.put("OTP:" + phoneNumber + ":" + normalizedServiceName, otp, 5);

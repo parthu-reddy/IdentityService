@@ -38,4 +38,14 @@ public class AuthController {
         String token = authService.verifyOtp(phoneNumber, otp, serviceName);
         return ResponseEntity.ok(ApiResponse.success(token, "Login successful"));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        
+        // In a real implementation we would blacklist the token here.
+        // Since we are using stateless JWT, we'll just return success 
+        // to signify that the client can clear its token.
+        return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
+    }
 }

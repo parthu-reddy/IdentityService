@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.Map;
 import java.util.UUID;
 import jakarta.validation.Valid;
-import com.fooddelivery.identity.dto.UpdateNameRequest;
+import com.fooddelivery.identity.dto.UpdateProfileRequest;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -27,19 +27,24 @@ public class UserController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return ResponseEntity.ok(ApiResponse.success(Map.of(
             "name", user.getName() != null ? user.getName() : "",
+            "email", user.getEmail() != null ? user.getEmail() : "",
             "phone", user.getPhoneNumber() != null ? user.getPhoneNumber() : ""
         ), "Profile fetched"));
     }
 
-    @PutMapping("/profile/name")
-    public ResponseEntity<ApiResponse<String>> updateName(
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<String>> updateProfile(
             @RequestHeader("X-User-Id") String userId, 
-            @Valid @RequestBody UpdateNameRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request) {
         AppUser user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        if (request.getPhone() != null) {
+            user.setPhoneNumber(request.getPhone());
+        }
         userRepository.save(user);
-        return ResponseEntity.ok(ApiResponse.success(null, "Name updated"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Profile updated"));
     }
 
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
