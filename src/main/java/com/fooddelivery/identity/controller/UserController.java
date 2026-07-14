@@ -38,11 +38,24 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request) {
         AppUser user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        if (request.getPhone() != null) {
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            if (user.getName() != null && !user.getName().trim().isEmpty() && !user.getName().equals(request.getName())) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Name cannot be modified once set"));
+            }
+            user.setName(request.getName());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            if (user.getEmail() != null && !user.getEmail().trim().isEmpty() && !user.getEmail().equals(request.getEmail())) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email cannot be modified once set"));
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
             user.setPhoneNumber(request.getPhone());
         }
+        
         userRepository.save(user);
         return ResponseEntity.ok(ApiResponse.success(null, "Profile updated"));
     }
