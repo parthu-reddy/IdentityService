@@ -185,9 +185,12 @@ public class AuthService {
                     defaultRoleName = "DELIVERY";
                 } else if (normalized.contains("RESTAURANT")) {
                     defaultRoleName = "RESTAURANT";
+                } else if (normalized.contains("ADMIN")) {
+                    defaultRoleName = "ADMIN";
                 }
             }
             
+            List<String> finalRoleNames = new ArrayList<>();
             if (defaultRoleName != null) {
                 List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
                 if (existingRoles.isEmpty()) {
@@ -196,7 +199,13 @@ public class AuthService {
                         .serviceName(serviceName)
                         .roleName(defaultRoleName)
                         .build());
+                    finalRoleNames.add(defaultRoleName);
+                } else {
+                    finalRoleNames = existingRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
                 }
+            } else {
+                List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
+                finalRoleNames = existingRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
             }
             
             String newSessionId = UUID.randomUUID().toString();
@@ -211,7 +220,7 @@ public class AuthService {
                     
             saveActiveSessions(user.getId(), activeSessions);
             
-            return generateJwtToken(user, serviceName, newSessionId);
+            return generateJwtToken(user, finalRoleNames, newSessionId);
         }
         throw new IllegalArgumentException("Invalid or expired OTP");
     }
@@ -279,9 +288,7 @@ public class AuthService {
         saveActiveSessions(userId, activeSessions);
     }
 
-    private String generateJwtToken(AppUser user, String serviceName, String sessionId) {
-        List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
-        List<String> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+    private String generateJwtToken(AppUser user, List<String> roleNames, String sessionId) {
 
         return Jwts.builder()
                 .setSubject(user.getId().toString())
