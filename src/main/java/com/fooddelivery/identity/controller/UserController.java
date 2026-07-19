@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 import jakarta.validation.Valid;
 import com.fooddelivery.identity.dto.UpdateProfileRequest;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -24,7 +26,7 @@ public class UserController {
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<Map<String, String>>> getProfile(@RequestHeader("X-User-Id") String userId) {
         AppUser user = userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         return ResponseEntity.ok(ApiResponse.success(Map.of(
             "name", user.getName() != null ? user.getName() : "",
             "email", user.getEmail() != null ? user.getEmail() : "",
@@ -37,7 +39,7 @@ public class UserController {
             @RequestHeader("X-User-Id") String userId, 
             @Valid @RequestBody UpdateProfileRequest request) {
         AppUser user = userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             if (user.getName() != null && !user.getName().trim().isEmpty() && !user.getName().equals(request.getName())) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Name cannot be modified once set"));

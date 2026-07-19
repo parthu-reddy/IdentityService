@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class InternalUserService {
     @Transactional(readOnly = true)
     public UserDTO getUser(UUID userId, String serviceName) {
         AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         
         List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(userId, serviceName);
         List<String> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
@@ -54,7 +56,7 @@ public class InternalUserService {
     @Transactional
     public void addRoleToUser(UUID userId, String roleName, String serviceName) {
         AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
                 
         List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(userId, serviceName);
         if (existingRoles.stream().noneMatch(r -> r.getRoleName().equals(roleName))) {
