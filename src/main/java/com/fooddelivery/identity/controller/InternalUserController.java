@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
+import com.fooddelivery.common.enums.RoleName;
 
 @RestController
 @RequestMapping("/api/v1/internal/users")
@@ -32,7 +33,7 @@ public class InternalUserController {
 
     @GetMapping("/by-role")
     public ResponseEntity<ApiResponse<List<UserDTO>>> getUsersByRole(
-            @RequestParam String role,
+            @RequestParam RoleName role,
             @RequestHeader("X-Calling-Service") String callingService) {
             
         List<UserDTO> users = internalUserService.getUsersByRole(role, callingService);
@@ -52,7 +53,7 @@ public class InternalUserController {
     @DeleteMapping("/{id}/roles/{roleName}")
     public ResponseEntity<ApiResponse<String>> removeRole(
             @PathVariable UUID id,
-            @PathVariable String roleName,
+            @PathVariable RoleName roleName,
             @RequestHeader("X-Calling-Service") String callingService) {
             
         internalUserService.removeRoleFromUser(id, roleName, callingService);

@@ -13,6 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import com.fooddelivery.common.enums.RoleName;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -34,7 +35,8 @@ public class UserRole {
     private AppUser user;
     
     private String serviceName;
-    private String roleName;
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    private RoleName roleName;
     
     @CreationTimestamp
     private LocalDateTime createdAt;

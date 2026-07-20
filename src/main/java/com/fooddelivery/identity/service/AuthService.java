@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fooddelivery.common.enums.RoleName;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -100,7 +101,7 @@ public class AuthService {
         String rateLimitKey = "RATELIMIT:INITIATE:" + phoneNumber;
         Long attempts = cachePort.increment(rateLimitKey, 10);
         
-        if (attempts != null && attempts > 3) {
+        if (attempts != null && attempts > 10) {
             log.warn("Rate limit exceeded for phone number: {}", phoneNumber);
             throw new IllegalArgumentException("Too many login attempts. Please try again later.");
         }
@@ -176,17 +177,17 @@ public class AuthService {
             cachePort.delete(cacheKey);
             cachePort.delete(rateLimitKey); // Reset verification attempts on success
                             
-            String defaultRoleName = null;
+            RoleName defaultRoleName = null;
             if (serviceName != null) {
                 String normalized = serviceName.toUpperCase();
-                if (normalized.contains("CUSTOMER")) {
-                    defaultRoleName = "CUSTOMER";
-                } else if (normalized.contains("DELIVERY")) {
-                    defaultRoleName = "DELIVERY";
-                } else if (normalized.contains("RESTAURANT")) {
-                    defaultRoleName = "RESTAURANT";
-                } else if (normalized.contains("ADMIN")) {
-                    defaultRoleName = "ADMIN";
+                if (normalized.contains(RoleName.CUSTOMER.name())) {
+                    defaultRoleName = RoleName.CUSTOMER;
+                } else if (normalized.contains(RoleName.DELIVERY.name())) {
+                    defaultRoleName = RoleName.DELIVERY;
+                } else if (normalized.contains(RoleName.RESTAURANT.name())) {
+                    defaultRoleName = RoleName.RESTAURANT;
+                } else if (normalized.contains(RoleName.ADMIN.name())) {
+                    defaultRoleName = RoleName.ADMIN;
                 }
             }
             
@@ -199,13 +200,13 @@ public class AuthService {
                         .serviceName(serviceName)
                         .roleName(defaultRoleName)
                         .build());
-                    finalRoleNames.add(defaultRoleName);
+                    finalRoleNames.add(defaultRoleName.name());
                 } else {
-                    finalRoleNames = existingRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+                    finalRoleNames = existingRoles.stream().map(r -> r.getRoleName().name()).collect(Collectors.toList());
                 }
             } else {
                 List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
-                finalRoleNames = existingRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+                finalRoleNames = existingRoles.stream().map(r -> r.getRoleName().name()).collect(Collectors.toList());
             }
             
             String newSessionId = UUID.randomUUID().toString();

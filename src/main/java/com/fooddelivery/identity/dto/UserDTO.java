@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.UUID;
 
+import com.fooddelivery.common.enums.RoleName;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,5 +17,5 @@ import java.util.UUID;
 public class UserDTO {
     private UUID id;
     private String phoneNumber;
-    private List<String> roles;
+    private List<RoleName> roles;
 }

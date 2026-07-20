@@ -8,6 +8,7 @@ import com.fooddelivery.identity.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fooddelivery.common.enums.RoleName;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public class InternalUserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         
         List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(userId, serviceName);
-        List<String> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+        List<RoleName> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
 
         return UserDTO.builder()
                 .id(user.getId())
@@ -38,7 +39,7 @@ public class InternalUserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDTO> getUsersByRole(String roleName, String serviceName) {
+    public List<UserDTO> getUsersByRole(RoleName roleName, String serviceName) {
         List<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName);
         
         return roles.stream().map(role -> {
@@ -54,7 +55,7 @@ public class InternalUserService {
     }
 
     @Transactional
-    public void addRoleToUser(UUID userId, String roleName, String serviceName) {
+    public void addRoleToUser(UUID userId, RoleName roleName, String serviceName) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
                 
@@ -69,7 +70,7 @@ public class InternalUserService {
     }
 
     @Transactional
-    public void removeRoleFromUser(UUID userId, String roleName, String serviceName) {
+    public void removeRoleFromUser(UUID userId, RoleName roleName, String serviceName) {
         userRoleRepository.deleteByUserIdAndServiceNameAndRoleName(userId, serviceName, roleName);
     }
 }
