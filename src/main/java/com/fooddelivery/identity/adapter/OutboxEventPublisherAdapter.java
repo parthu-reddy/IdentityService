@@ -34,9 +34,9 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
 
             OutboxEventEntity outboxEvent = new OutboxEventEntity();
             outboxEvent.setId(UUID.randomUUID());
-            outboxEvent.setAggregateType(AppConstants.AGGREGATE_NOTIFICATION);
+            outboxEvent.setAggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION);
             outboxEvent.setAggregateId(recipientPhoneNumber); // Routing key
-            outboxEvent.setEventType("NOTIFICATION_REQUEST");
+            outboxEvent.setEventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST);
             outboxEvent.setPayload(objectMapper.writeValueAsString(event));
             outboxEvent.setCreatedAt(java.time.LocalDateTime.now());
             
