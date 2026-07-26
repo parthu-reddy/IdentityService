@@ -66,6 +66,7 @@ public class AuthService {
     
     private PrivateKey privateKey;
     private PublicKey publicKey;
+    private io.jsonwebtoken.JwtParser jwtParser;
 
     @PostConstruct
     public void init() {
@@ -90,6 +91,7 @@ public class AuthService {
                 byte[] decodedPubKey = Base64.getDecoder().decode(pubKeyString);
                 X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(decodedPubKey);
                 this.publicKey = keyFactory.generatePublic(pubKeySpec);
+                this.jwtParser = Jwts.parserBuilder().setSigningKey(this.publicKey).build();
             }
         } catch (Exception e) {
             log.error("Failed to load RSA keys", e);
@@ -249,11 +251,7 @@ public class AuthService {
 
     public void logout(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(publicKey)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            Claims claims = jwtParser.parseClaimsJws(token).getBody();
                     
             String userIdStr = claims.getSubject();
             String sessionId = claims.get("sessionId", String.class);
