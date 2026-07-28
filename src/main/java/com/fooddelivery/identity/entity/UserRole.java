@@ -1,5 +1,6 @@
 package com.fooddelivery.identity.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -28,16 +29,20 @@ public class UserRole {
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id")
     private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
     
+    @Column(name = "service_name")
     private String serviceName;
     @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "role_name")
     private RoleName roleName;
     
     @CreationTimestamp
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

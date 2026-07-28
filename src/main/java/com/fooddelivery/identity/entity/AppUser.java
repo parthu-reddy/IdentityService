@@ -1,5 +1,6 @@
 package com.fooddelivery.identity.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -27,9 +28,13 @@ import jakarta.persistence.OneToMany;
 public class AppUser {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id")
     private UUID id;
+    @Column(name = "phone_number")
     private String phoneNumber;
+    @Column(name = "name")
     private String name;
+    @Column(name = "email")
     private String email;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -37,5 +42,6 @@ public class AppUser {
     private List<UserRole> roles = new ArrayList<>();
 
     @CreationTimestamp
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

@@ -31,13 +31,16 @@ public class UserDevice {
     @JsonIgnore
     private AppUser user;
 
+    @Column(name = "device_id")
     private String deviceId;
     
+    @Column(name = "device_model")
     private String deviceModel;
 
     @Column(name = "portal")
     private String portal;
 
     @CreationTimestamp
+    @Column(name = "login_time")
     private LocalDateTime loginTime;
 }
