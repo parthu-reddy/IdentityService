@@ -15,9 +15,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InternalUserService {
 
     private final UserRepository userRepository;

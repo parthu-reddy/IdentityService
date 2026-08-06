@@ -14,10 +14,12 @@ import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import com.fooddelivery.common.enums.RoleName;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/internal/users")
 @RequiredArgsConstructor
+@Slf4j
 public class InternalUserController {
 
     private final InternalUserService internalUserService;

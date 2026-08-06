@@ -14,11 +14,13 @@ import jakarta.validation.Valid;
 import com.fooddelivery.identity.dto.UpdateProfileRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @PreAuthorize("permitAll()")
+@Slf4j
 public class UserController {
 
     private final UserRepository userRepository;
