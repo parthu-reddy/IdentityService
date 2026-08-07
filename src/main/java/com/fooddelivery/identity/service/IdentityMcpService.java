@@ -5,27 +5,21 @@ import com.fooddelivery.identity.controller.*;
 import com.fooddelivery.identity.dto.UpdateProfileRequest;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
-
 import com.fooddelivery.common.enums.RoleName;
 import com.fooddelivery.identity.dto.RoleRequestDTO;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 public class IdentityMcpService {
-
+    @java.lang.SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IdentityMcpService.class);
     private final InternalUserController internalUserController;
     private final AuthController authController;
     private final AdminOtpController adminOtpController;
     private final UserController userController;
     private final ObjectMapper objectMapper;
 
-    public IdentityMcpService(InternalUserController internalUserController,
-                              AuthController authController,
-                              AdminOtpController adminOtpController,
-                              UserController userController,
-                              ObjectMapper objectMapper) {
+    public IdentityMcpService(InternalUserController internalUserController, AuthController authController, AdminOtpController adminOtpController, UserController userController, ObjectMapper objectMapper) {
         this.internalUserController = internalUserController;
         this.authController = authController;
         this.adminOtpController = adminOtpController;
@@ -34,7 +28,6 @@ public class IdentityMcpService {
     }
 
     // InternalUserController
-
     @Tool(description = "Get user by ID. Provide userId.")
     public String getUser(String userId) {
         try {
@@ -74,7 +67,6 @@ public class IdentityMcpService {
     }
 
     // AuthController
-
     @Tool(description = "Initiate login via OTP. Provide phoneNumber and serviceName.")
     public String initiateLogin(String phoneNumber, String serviceName) {
         try {
@@ -130,7 +122,6 @@ public class IdentityMcpService {
     }
 
     // AdminOtpController
-
     @Tool(description = "Get current OTP for a user number (Dev only). Provide phoneNumber and serviceName.")
     public String getOtp(String phoneNumber, String serviceName) {
         try {
@@ -141,7 +132,6 @@ public class IdentityMcpService {
     }
 
     // UserController
-
     @Tool(description = "Get user profile. Provide userId.")
     public String getProfile(String userId) {
         try {

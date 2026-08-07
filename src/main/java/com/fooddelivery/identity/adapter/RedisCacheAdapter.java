@@ -1,16 +1,12 @@
 package com.fooddelivery.identity.adapter;
 
 import com.fooddelivery.identity.port.CachePort;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 
 @Component
-@RequiredArgsConstructor
 public class RedisCacheAdapter implements CachePort {
-
     private final StringRedisTemplate redisTemplate;
 
     @Override
@@ -35,5 +31,10 @@ public class RedisCacheAdapter implements CachePort {
             redisTemplate.expire(key, Duration.ofMinutes(expirationMinutes));
         }
         return value;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public RedisCacheAdapter(final StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
     }
 }

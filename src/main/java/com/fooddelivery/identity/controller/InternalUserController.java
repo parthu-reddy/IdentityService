@@ -4,61 +4,47 @@ import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.dto.RoleRequestDTO;
 import com.fooddelivery.identity.dto.UserDTO;
 import com.fooddelivery.identity.service.InternalUserService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import com.fooddelivery.common.enums.RoleName;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/internal/users")
-@RequiredArgsConstructor
-@Slf4j
 public class InternalUserController {
-
+    @java.lang.SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(InternalUserController.class);
     private final InternalUserService internalUserService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDTO>> getUser(
-            @PathVariable UUID id,
-            @RequestHeader("X-Calling-Service") String callingService) {
-            
+    public ResponseEntity<ApiResponse<UserDTO>> getUser(@PathVariable UUID id, @RequestHeader("X-Calling-Service") String callingService) {
         UserDTO userDTO = internalUserService.getUser(id, callingService);
         return ResponseEntity.ok(ApiResponse.success(userDTO, "User retrieved successfully"));
     }
 
     @GetMapping("/by-role")
-    public ResponseEntity<ApiResponse<List<UserDTO>>> getUsersByRole(
-            @RequestParam RoleName role,
-            @RequestHeader("X-Calling-Service") String callingService) {
-            
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getUsersByRole(@RequestParam RoleName role, @RequestHeader("X-Calling-Service") String callingService) {
         List<UserDTO> users = internalUserService.getUsersByRole(role, callingService);
         return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
     }
 
     @PostMapping("/{id}/roles")
-    public ResponseEntity<ApiResponse<String>> addRole(
-            @PathVariable UUID id,
-            @Valid @RequestBody RoleRequestDTO request,
-            @RequestHeader("X-Calling-Service") String callingService) {
-            
+    public ResponseEntity<ApiResponse<String>> addRole(@PathVariable UUID id, @Valid @RequestBody RoleRequestDTO request, @RequestHeader("X-Calling-Service") String callingService) {
         internalUserService.addRoleToUser(id, request.getRoleName(), callingService);
         return ResponseEntity.ok(ApiResponse.success(null, "Role added successfully"));
     }
 
     @DeleteMapping("/{id}/roles/{roleName}")
-    public ResponseEntity<ApiResponse<String>> removeRole(
-            @PathVariable UUID id,
-            @PathVariable RoleName roleName,
-            @RequestHeader("X-Calling-Service") String callingService) {
-            
+    public ResponseEntity<ApiResponse<String>> removeRole(@PathVariable UUID id, @PathVariable RoleName roleName, @RequestHeader("X-Calling-Service") String callingService) {
         internalUserService.removeRoleFromUser(id, roleName, callingService);
         return ResponseEntity.ok(ApiResponse.success(null, "Role removed successfully"));
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public InternalUserController(final InternalUserService internalUserService) {
+        this.internalUserService = internalUserService;
     }
 }

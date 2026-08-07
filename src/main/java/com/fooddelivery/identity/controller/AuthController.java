@@ -2,15 +2,12 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.service.AuthService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,52 +16,34 @@ import java.util.List;
 import java.util.UUID;
 import com.fooddelivery.identity.dto.SessionInfo;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/internal/auth")
-@RequiredArgsConstructor
 @PreAuthorize("permitAll()")
 public class AuthController {
-
+    @java.lang.SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
 
     @PostMapping("/initiate")
-    public ResponseEntity<ApiResponse<String>> initiateLogin(
-            @RequestParam String phoneNumber, 
-            @RequestHeader("X-Calling-Service") String serviceName) {
-            
+    public ResponseEntity<ApiResponse<String>> initiateLogin(@RequestParam String phoneNumber, @RequestHeader("X-Calling-Service") String serviceName) {
         authService.initiateLogin(phoneNumber, serviceName);
         return ResponseEntity.ok(ApiResponse.success(null, "OTP sent successfully"));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<ApiResponse<String>> verifyOtp(
-            @RequestParam String phoneNumber, 
-            @RequestParam String otp, 
-            @RequestHeader("X-Calling-Service") String serviceName,
-            @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo,
-            @RequestHeader(value = "X-Device-OS", required = false) String os,
-            @RequestHeader(value = "X-Device-Browser", required = false) String browser,
-            @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
-            
+    public ResponseEntity<ApiResponse<String>> verifyOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
         String token = authService.verifyOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId);
         return ResponseEntity.ok(ApiResponse.success(token, "Login successful"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
-            @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
-        
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
         boolean loggedOut = false;
-        
         // Primary: use gateway-injected headers (already validated by the gateway)
         if (userId != null && !userId.isEmpty() && sessionId != null && !sessionId.isEmpty()) {
             authService.removeSession(java.util.UUID.fromString(userId), sessionId);
             loggedOut = true;
         }
-        
         // Fallback: parse the token directly if gateway headers were missing
         if (!loggedOut && token != null && token.startsWith("Bearer ")) {
             try {
@@ -74,14 +53,11 @@ public class AuthController {
                 log.warn("Token-based logout failed, session may already be removed", e);
             }
         }
-        
         return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        
+    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = "X-User-Id", required = false) String userId) {
         if (userId != null && !userId.isEmpty()) {
             List<SessionInfo> sessions = authService.getUserSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(sessions, "Sessions retrieved successfully"));
@@ -90,10 +66,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> removeSession(
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @PathVariable String sessionId) {
-        
+    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = "X-User-Id", required = false) String userId, @PathVariable String sessionId) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeSession(UUID.fromString(userId), sessionId);
             return ResponseEntity.ok(ApiResponse.success(null, "Session removed successfully"));
@@ -102,13 +75,16 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions")
-    public ResponseEntity<ApiResponse<Void>> removeAllSessions(
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        
+    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = "X-User-Id", required = false) String userId) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeAllSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(null, "All sessions removed successfully"));
         }
         return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public AuthController(final AuthService authService) {
+        this.authService = authService;
     }
 }
