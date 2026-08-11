@@ -32,12 +32,21 @@ public class AppUser {
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+    
+    @Column(name = "is_active")
+    @Builder.Default
+    private boolean isActive = true;
 
     @java.lang.SuppressWarnings("all")
     private static List<UserRole> $default$roles() {
         return new ArrayList<>();
     }
 
+
+    @java.lang.SuppressWarnings("all")
+    private static boolean $default$isActive() {
+        return true;
+    }
 
     @java.lang.SuppressWarnings("all")
     public static class AppUserBuilder {
@@ -55,6 +64,10 @@ public class AppUser {
         private List<UserRole> roles$value;
         @java.lang.SuppressWarnings("all")
         private LocalDateTime createdAt;
+        @java.lang.SuppressWarnings("all")
+        private boolean isActive$set;
+        @java.lang.SuppressWarnings("all")
+        private boolean isActive$value;
 
         @java.lang.SuppressWarnings("all")
         AppUserBuilder() {
@@ -115,17 +128,29 @@ public class AppUser {
             return this;
         }
 
+        /**
+         * @return {@code this}.
+         */
+        @java.lang.SuppressWarnings("all")
+        public AppUser.AppUserBuilder isActive(final boolean isActive) {
+            this.isActive$value = isActive;
+            isActive$set = true;
+            return this;
+        }
+
         @java.lang.SuppressWarnings("all")
         public AppUser build() {
             List<UserRole> roles$value = this.roles$value;
             if (!this.roles$set) roles$value = AppUser.$default$roles();
-            return new AppUser(this.id, this.phoneNumber, this.name, this.email, roles$value, this.createdAt);
+            boolean isActive$value = this.isActive$value;
+            if (!this.isActive$set) isActive$value = AppUser.$default$isActive();
+            return new AppUser(this.id, this.phoneNumber, this.name, this.email, roles$value, this.createdAt, isActive$value);
         }
 
         @java.lang.Override
         @java.lang.SuppressWarnings("all")
         public java.lang.String toString() {
-            return "AppUser.AppUserBuilder(id=" + this.id + ", phoneNumber=" + this.phoneNumber + ", name=" + this.name + ", email=" + this.email + ", roles$value=" + this.roles$value + ", createdAt=" + this.createdAt + ")";
+            return "AppUser.AppUserBuilder(id=" + this.id + ", phoneNumber=" + this.phoneNumber + ", name=" + this.name + ", email=" + this.email + ", roles$value=" + this.roles$value + ", createdAt=" + this.createdAt + ", isActive$value=" + this.isActive$value + ")";
         }
     }
 
@@ -165,6 +190,11 @@ public class AppUser {
     }
 
     @java.lang.SuppressWarnings("all")
+    public boolean isActive() {
+        return this.isActive;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public void setId(final UUID id) {
         this.id = id;
     }
@@ -194,6 +224,11 @@ public class AppUser {
         this.createdAt = createdAt;
     }
 
+    @java.lang.SuppressWarnings("all")
+    public void setActive(final boolean isActive) {
+        this.isActive = isActive;
+    }
+
     @java.lang.Override
     @java.lang.SuppressWarnings("all")
     public boolean equals(final java.lang.Object o) {
@@ -219,6 +254,7 @@ public class AppUser {
         final java.lang.Object this$createdAt = this.getCreatedAt();
         final java.lang.Object other$createdAt = other.getCreatedAt();
         if (this$createdAt == null ? other$createdAt != null : !this$createdAt.equals(other$createdAt)) return false;
+        if (this.isActive() != other.isActive()) return false;
         return true;
     }
 
@@ -244,27 +280,30 @@ public class AppUser {
         result = result * PRIME + ($roles == null ? 43 : $roles.hashCode());
         final java.lang.Object $createdAt = this.getCreatedAt();
         result = result * PRIME + ($createdAt == null ? 43 : $createdAt.hashCode());
+        result = result * PRIME + (this.isActive() ? 79 : 97);
         return result;
     }
 
     @java.lang.Override
     @java.lang.SuppressWarnings("all")
     public java.lang.String toString() {
-        return "AppUser(id=" + this.getId() + ", phoneNumber=" + this.getPhoneNumber() + ", name=" + this.getName() + ", email=" + this.getEmail() + ", roles=" + this.getRoles() + ", createdAt=" + this.getCreatedAt() + ")";
+        return "AppUser(id=" + this.getId() + ", phoneNumber=" + this.getPhoneNumber() + ", name=" + this.getName() + ", email=" + this.getEmail() + ", roles=" + this.getRoles() + ", createdAt=" + this.getCreatedAt() + ", isActive=" + this.isActive() + ")";
     }
 
     @java.lang.SuppressWarnings("all")
     public AppUser() {
         this.roles = AppUser.$default$roles();
+        this.isActive = AppUser.$default$isActive();
     }
 
     @java.lang.SuppressWarnings("all")
-    public AppUser(final UUID id, final String phoneNumber, final String name, final String email, final List<UserRole> roles, final LocalDateTime createdAt) {
+    public AppUser(final UUID id, final String phoneNumber, final String name, final String email, final List<UserRole> roles, final LocalDateTime createdAt, final boolean isActive) {
         this.id = id;
         this.phoneNumber = phoneNumber;
         this.name = name;
         this.email = email;
         this.roles = roles;
         this.createdAt = createdAt;
+        this.isActive = isActive;
     }
 }

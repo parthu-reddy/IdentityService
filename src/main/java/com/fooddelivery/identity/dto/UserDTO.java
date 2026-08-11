@@ -8,7 +8,7 @@ public class UserDTO {
     private UUID id;
     private String phoneNumber;
     private List<RoleName> roles;
-
+    private boolean isActive;
 
     @java.lang.SuppressWarnings("all")
     public static class UserDTOBuilder {
@@ -18,6 +18,8 @@ public class UserDTO {
         private String phoneNumber;
         @java.lang.SuppressWarnings("all")
         private List<RoleName> roles;
+        @java.lang.SuppressWarnings("all")
+        private boolean isActive;
 
         @java.lang.SuppressWarnings("all")
         UserDTOBuilder() {
@@ -50,15 +52,24 @@ public class UserDTO {
             return this;
         }
 
+        /**
+         * @return {@code this}.
+         */
+        @java.lang.SuppressWarnings("all")
+        public UserDTO.UserDTOBuilder isActive(final boolean isActive) {
+            this.isActive = isActive;
+            return this;
+        }
+
         @java.lang.SuppressWarnings("all")
         public UserDTO build() {
-            return new UserDTO(this.id, this.phoneNumber, this.roles);
+            return new UserDTO(this.id, this.phoneNumber, this.roles, this.isActive);
         }
 
         @java.lang.Override
         @java.lang.SuppressWarnings("all")
         public java.lang.String toString() {
-            return "UserDTO.UserDTOBuilder(id=" + this.id + ", phoneNumber=" + this.phoneNumber + ", roles=" + this.roles + ")";
+            return "UserDTO.UserDTOBuilder(id=" + this.id + ", phoneNumber=" + this.phoneNumber + ", roles=" + this.roles + ", isActive=" + this.isActive + ")";
         }
     }
 
@@ -83,6 +94,11 @@ public class UserDTO {
     }
 
     @java.lang.SuppressWarnings("all")
+    public boolean isActive() {
+        return this.isActive;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public void setId(final UUID id) {
         this.id = id;
     }
@@ -95,6 +111,11 @@ public class UserDTO {
     @java.lang.SuppressWarnings("all")
     public void setRoles(final List<RoleName> roles) {
         this.roles = roles;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setActive(final boolean isActive) {
+        this.isActive = isActive;
     }
 
     @java.lang.Override
@@ -113,6 +134,7 @@ public class UserDTO {
         final java.lang.Object this$roles = this.getRoles();
         final java.lang.Object other$roles = other.getRoles();
         if (this$roles == null ? other$roles != null : !this$roles.equals(other$roles)) return false;
+        if (this.isActive() != other.isActive()) return false;
         return true;
     }
 
@@ -132,13 +154,14 @@ public class UserDTO {
         result = result * PRIME + ($phoneNumber == null ? 43 : $phoneNumber.hashCode());
         final java.lang.Object $roles = this.getRoles();
         result = result * PRIME + ($roles == null ? 43 : $roles.hashCode());
+        result = result * PRIME + (this.isActive() ? 79 : 97);
         return result;
     }
 
     @java.lang.Override
     @java.lang.SuppressWarnings("all")
     public java.lang.String toString() {
-        return "UserDTO(id=" + this.getId() + ", phoneNumber=" + this.getPhoneNumber() + ", roles=" + this.getRoles() + ")";
+        return "UserDTO(id=" + this.getId() + ", phoneNumber=" + this.getPhoneNumber() + ", roles=" + this.getRoles() + ", isActive=" + this.isActive() + ")";
     }
 
     @java.lang.SuppressWarnings("all")
@@ -146,9 +169,10 @@ public class UserDTO {
     }
 
     @java.lang.SuppressWarnings("all")
-    public UserDTO(final UUID id, final String phoneNumber, final List<RoleName> roles) {
+    public UserDTO(final UUID id, final String phoneNumber, final List<RoleName> roles, final boolean isActive) {
         this.id = id;
         this.phoneNumber = phoneNumber;
         this.roles = roles;
+        this.isActive = isActive;
     }
 }

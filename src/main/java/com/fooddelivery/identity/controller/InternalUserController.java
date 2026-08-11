@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
-import jakarta.validation.Valid;
 import com.fooddelivery.common.enums.RoleName;
+import java.util.Map;
+import jakarta.validation.Valid;
+
 
 @RestController
 @RequestMapping("/api/v1/internal/users")
@@ -25,9 +27,33 @@ public class InternalUserController {
         return ResponseEntity.ok(ApiResponse.success(userDTO, "User retrieved successfully"));
     }
 
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<UserDTO> users = internalUserService.getAllUsers(pageable);
+        return ResponseEntity.ok(ApiResponse.success(users, "All users retrieved successfully"));
+    }
+
+    @PutMapping("/admin/{userId}/status")
+    public ResponseEntity<ApiResponse<String>> updateUserStatus(
+            @PathVariable UUID userId,
+            @RequestBody Map<String, Boolean> status) {
+        boolean isActive = status.getOrDefault("isActive", true);
+        internalUserService.updateUserStatus(userId, isActive);
+        return ResponseEntity.ok(ApiResponse.success(null, "User status updated successfully"));
+    }
+
     @GetMapping("/by-role")
-    public ResponseEntity<ApiResponse<List<UserDTO>>> getUsersByRole(@RequestParam RoleName role, @RequestHeader("X-Calling-Service") String callingService) {
-        List<UserDTO> users = internalUserService.getUsersByRole(role, callingService);
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getUsersByRole(
+            @RequestParam RoleName role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestHeader("X-Calling-Service") String callingService) {
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<UserDTO> users = internalUserService.getUsersByRole(role, callingService, pageable);
         return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
     }
 

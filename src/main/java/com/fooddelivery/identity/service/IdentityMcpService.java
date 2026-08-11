@@ -40,7 +40,7 @@ public class IdentityMcpService {
     @Tool(description = "Get users by role. Provide roleName.")
     public String getUsersByRole(String roleName) {
         try {
-            return objectMapper.writeValueAsString(internalUserController.getUsersByRole(RoleName.valueOf(roleName), "MCP_SERVICE").getBody());
+            return objectMapper.writeValueAsString(internalUserController.getUsersByRole(RoleName.valueOf(roleName), 0, 50, "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

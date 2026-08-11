@@ -26,19 +26,47 @@ public class InternalUserService {
         AppUser user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(userId, serviceName);
         List<RoleName> roleNames = roles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
-        return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).roles(roleNames).build();
+        return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(roleNames).build();
     }
 
     @Transactional(readOnly = true)
     public List<UserDTO> getUsersByRole(RoleName roleName, String serviceName) {
         List<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName);
-        return 
-        // Only returning the specific role queried, to avoid an N+1 if not necessary,
-        // or we could query all their roles for this service. Let's just return the single role context.
-        roles.stream().map(role -> {
+        return roles.stream().map(role -> {
             AppUser user = role.getUser();
-            return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).roles(List.of(role.getRoleName())).build();
+            return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(List.of(role.getRoleName())).build();
         }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<UserDTO> getUsersByRole(RoleName roleName, String serviceName, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName, pageable);
+        return roles.map(role -> {
+            AppUser user = role.getUser();
+            return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(List.of(role.getRoleName())).build();
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<UserDTO> getAllUsers(org.springframework.data.domain.Pageable pageable) {
+        return userRepository.findAll(pageable).map(user -> {
+            List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+            List<RoleName> roleNames = userRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
+            return UserDTO.builder()
+                    .id(user.getId())
+                    .phoneNumber(user.getPhoneNumber())
+                    .isActive(user.isActive())
+                    .roles(roleNames)
+                    .build();
+        });
+    }
+
+    @Transactional
+    public void updateUserStatus(UUID userId, boolean isActive) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setActive(isActive);
+        userRepository.save(user);
     }
 
     @Transactional
