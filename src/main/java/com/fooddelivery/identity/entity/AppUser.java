@@ -34,7 +34,6 @@ public class AppUser {
     private LocalDateTime createdAt;
     
     @Column(name = "is_active")
-    @Builder.Default
     private boolean isActive = true;
 
     @java.lang.SuppressWarnings("all")

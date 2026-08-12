@@ -24,16 +24,5 @@ CREATE TABLE user_devices (
     login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE outbox_events (
-    id UUID PRIMARY KEY,
-    aggregate_type VARCHAR(255) NOT NULL,
-    aggregate_id VARCHAR(255) NOT NULL,
-    type VARCHAR(255) NOT NULL,
-    payload JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'UNPROCESSED',
-    processed_at TIMESTAMP,
-    error_message TEXT,
-    retry_count INTEGER DEFAULT 0
-);
-CREATE INDEX idx_outbox_status_polling ON outbox_events(status, created_at) WHERE status IN ('UNPROCESSED', 'FAILED');
+
+
