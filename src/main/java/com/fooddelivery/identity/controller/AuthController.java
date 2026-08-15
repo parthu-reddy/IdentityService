@@ -58,7 +58,7 @@ public class AuthController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             List<SessionInfo> sessions = authService.getUserSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(sessions, "Sessions retrieved successfully"));
@@ -67,7 +67,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = "X-User-Id", required = false) String userId, @PathVariable String sessionId) {
+    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService, @PathVariable String sessionId) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeSession(UUID.fromString(userId), sessionId);
             return ResponseEntity.ok(ApiResponse.success(null, "Session removed successfully"));
@@ -76,7 +76,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions")
-    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeAllSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(null, "All sessions removed successfully"));

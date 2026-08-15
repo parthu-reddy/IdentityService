@@ -98,7 +98,7 @@ public class IdentityMcpService {
     @Tool(description = "Get active sessions for user. Provide userId.")
     public String getActiveSessions(String userId) {
         try {
-            return objectMapper.writeValueAsString(authController.getActiveSessions(userId).getBody());
+            return objectMapper.writeValueAsString(authController.getActiveSessions(userId, null).getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
@@ -107,7 +107,7 @@ public class IdentityMcpService {
     @Tool(description = "Remove a session for user. Provide userId and sessionId.")
     public String removeSession(String userId, String sessionId) {
         try {
-            return objectMapper.writeValueAsString(authController.removeSession(userId, sessionId).getBody());
+            return objectMapper.writeValueAsString(authController.removeSession(userId, null, sessionId).getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
@@ -116,7 +116,7 @@ public class IdentityMcpService {
     @Tool(description = "Remove all sessions for user. Provide userId.")
     public String removeAllSessions(String userId) {
         try {
-            return objectMapper.writeValueAsString(authController.removeAllSessions(userId).getBody());
+            return objectMapper.writeValueAsString(authController.removeAllSessions(userId, null).getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
