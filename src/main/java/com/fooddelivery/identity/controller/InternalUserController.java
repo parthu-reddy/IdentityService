@@ -16,9 +16,10 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/internal/users")
+@lombok.extern.slf4j.Slf4j
 public class InternalUserController {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(InternalUserController.class);
+
     private final InternalUserService internalUserService;
 
     @GetMapping("/{id}")

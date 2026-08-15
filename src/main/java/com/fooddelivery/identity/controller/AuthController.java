@@ -19,9 +19,10 @@ import com.fooddelivery.identity.dto.SessionInfo;
 @RestController
 @RequestMapping("/api/v1/internal/auth")
 @PreAuthorize("permitAll()")
+@lombok.extern.slf4j.Slf4j
 public class AuthController {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+
     private final AuthService authService;
 
     @PostMapping("/initiate")

@@ -11,9 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Component
+@lombok.extern.slf4j.Slf4j
 public class OutboxEventPublisherAdapter implements EventPublisherPort {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OutboxEventPublisherAdapter.class);
+
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
 

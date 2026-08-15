@@ -14,9 +14,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @RequestMapping("/api/v1/internal/auth/admin")
 @Profile("dev")
 @PreAuthorize("permitAll()")
+@lombok.extern.slf4j.Slf4j
 public class AdminOtpController {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AdminOtpController.class);
+
     private final CachePort cachePort;
 
     @GetMapping("/otp")

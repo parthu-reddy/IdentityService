@@ -16,9 +16,10 @@ import org.springframework.http.HttpStatus;
 @RestController
 @RequestMapping("/api/v1/users")
 @PreAuthorize("permitAll()")
+@lombok.extern.slf4j.Slf4j
 public class UserController {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UserController.class);
+
     private final UserRepository userRepository;
 
     @GetMapping("/profile")

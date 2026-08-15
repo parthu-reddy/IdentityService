@@ -10,9 +10,10 @@ import com.fooddelivery.identity.dto.RoleRequestDTO;
 import java.util.UUID;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 public class IdentityMcpService {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IdentityMcpService.class);
+
     private final InternalUserController internalUserController;
     private final AuthController authController;
     private final AdminOtpController adminOtpController;

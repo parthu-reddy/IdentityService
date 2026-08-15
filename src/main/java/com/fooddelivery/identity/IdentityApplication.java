@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(scanBasePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
+@SpringBootApplication(scanBasePackages = {"com.fooddelivery.identity", "com.fooddelivery.common", "com.fooddelivery"})
 @EntityScan(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
 @EnableJpaRepositories(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
 public class IdentityApplication {

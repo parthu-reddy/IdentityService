@@ -39,9 +39,10 @@ import org.springframework.util.FileCopyUtils;
 import jakarta.annotation.PostConstruct;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 public class AuthService {
     @java.lang.SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final EventPublisherPort eventPublisherPort;
