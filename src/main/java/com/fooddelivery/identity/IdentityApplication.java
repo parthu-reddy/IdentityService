@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"com.fooddelivery.identity", "com.fooddelivery.common", "com.fooddelivery"})
 @EntityScan(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
-@EnableJpaRepositories(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
+@EnableJpaRepositories(basePackages = {"com.fooddelivery"})
 public class IdentityApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(IdentityApplication.class, args);
