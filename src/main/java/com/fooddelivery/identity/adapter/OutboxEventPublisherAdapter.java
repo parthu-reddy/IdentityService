@@ -23,13 +23,15 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
     public void publishNotificationEvent(String recipientPhoneNumber, String channelType, String otp) {
         try {
             NotificationRequestEvent event = NotificationRequestEvent.builder().explicitRecipient(recipientPhoneNumber).channel(com.fooddelivery.common.enums.ChannelType.valueOf(channelType)).eventName("OTP_LOGIN").payload(java.util.Map.of("otp", otp)).build();
-            OutboxEventEntity outboxEvent = new OutboxEventEntity();
-            outboxEvent.setId(UUID.randomUUID());
-            outboxEvent.setAggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION);
-            outboxEvent.setAggregateId(recipientPhoneNumber); // Routing key
-            outboxEvent.setEventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST);
-            outboxEvent.setPayload(objectMapper.writeValueAsString(event));
-            outboxEvent.setCreatedAt(java.time.LocalDateTime.now());
+            OutboxEventEntity outboxEvent = OutboxEventEntity.builder()
+                .id(UUID.randomUUID())
+                .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
+                .aggregateId(recipientPhoneNumber)
+                .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
+                .payload(objectMapper.writeValueAsString(event))
+                .createdAt(java.time.LocalDateTime.now())
+                .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
+                .build();
             outboxEventRepository.save(outboxEvent);
             log.info("Saved NotificationRequestEvent to Outbox for phone: {}", recipientPhoneNumber);
         } catch (Exception e) {

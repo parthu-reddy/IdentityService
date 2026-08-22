@@ -3,7 +3,8 @@ CREATE TABLE users (
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(255),
     email VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE user_roles (
@@ -23,6 +24,3 @@ CREATE TABLE user_devices (
     portal VARCHAR(255),
     login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-
-
