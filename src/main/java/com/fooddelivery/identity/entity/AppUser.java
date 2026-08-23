@@ -37,12 +37,6 @@ public class AppUser {
     private boolean isActive = true;
 
     @java.lang.SuppressWarnings("all")
-    private static List<UserRole> $default$roles() {
-        return new ArrayList<>();
-    }
-
-
-    @java.lang.SuppressWarnings("all")
     private static boolean $default$isActive() {
         return true;
     }
@@ -304,5 +298,9 @@ public class AppUser {
         this.roles = roles;
         this.createdAt = createdAt;
         this.isActive = isActive;
+    }
+
+    private static List<UserRole> $default$roles() {
+        return new ArrayList<>();
     }
 }
