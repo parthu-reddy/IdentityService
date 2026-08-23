@@ -24,15 +24,28 @@ public class AuthController {
     @java.lang.SuppressWarnings("all")
 
     private final AuthService authService;
+    private final com.fooddelivery.common.service.RateLimitingService rateLimitingService;
+
+    private boolean isRateLimited(String clientKey) {
+        if (clientKey == null || clientKey.isBlank() || clientKey.equals("unknown")) return true;
+        io.github.bucket4j.Bucket bucket = rateLimitingService.resolveBucket("auth:" + clientKey, 10, 10, java.time.Duration.ofMinutes(1));
+        return !bucket.tryConsume(1);
+    }
 
     @PostMapping("/initiate")
     public ResponseEntity<ApiResponse<String>> initiateLogin(@RequestParam String phoneNumber, @RequestHeader("X-Calling-Service") String serviceName) {
+        if (isRateLimited(phoneNumber)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         authService.initiateLogin(phoneNumber, serviceName);
         return ResponseEntity.ok(ApiResponse.success(null, "OTP sent successfully"));
     }
 
     @PostMapping("/verify")
     public ResponseEntity<ApiResponse<String>> verifyOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
+        if (isRateLimited(phoneNumber)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         String token = authService.verifyOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId);
         return ResponseEntity.ok(ApiResponse.success(token, "Login successful"));
     }
@@ -85,7 +98,8 @@ public class AuthController {
     }
 
     @java.lang.SuppressWarnings("all")
-    public AuthController(final AuthService authService) {
+    public AuthController(final AuthService authService, final com.fooddelivery.common.service.RateLimitingService rateLimitingService) {
         this.authService = authService;
+        this.rateLimitingService = rateLimitingService;
     }
 }
