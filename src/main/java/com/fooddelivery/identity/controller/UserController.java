@@ -23,13 +23,13 @@ public class UserController {
     private final UserRepository userRepository;
 
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<Map<String, String>>> getProfile(@RequestHeader("X-User-Id") String userId) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> getProfile(@RequestHeader(com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID) String userId) {
         AppUser user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         return ResponseEntity.ok(ApiResponse.success(Map.of("name", user.getName() != null ? user.getName() : "", "email", user.getEmail() != null ? user.getEmail() : "", "phone", user.getPhoneNumber() != null ? user.getPhoneNumber() : ""), "Profile fetched"));
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<ApiResponse<String>> updateProfile(@RequestHeader("X-User-Id") String userId, @Valid @RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<ApiResponse<String>> updateProfile(@RequestHeader(com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID) String userId, @Valid @RequestBody UpdateProfileRequest request) {
         AppUser user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             if (user.getName() != null && !user.getName().trim().isEmpty() && !user.getName().equals(request.getName())) {

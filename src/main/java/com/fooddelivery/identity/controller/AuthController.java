@@ -51,7 +51,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
         boolean loggedOut = false;
         // Primary: use gateway-injected headers (already validated by the gateway)
         if (userId != null && !userId.isEmpty() && sessionId != null && !sessionId.isEmpty()) {
@@ -71,7 +71,7 @@ public class AuthController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
+    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             List<SessionInfo> sessions = authService.getUserSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(sessions, "Sessions retrieved successfully"));
@@ -80,7 +80,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService, @PathVariable String sessionId) {
+    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService, @PathVariable String sessionId) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeSession(UUID.fromString(userId), sessionId);
             return ResponseEntity.ok(ApiResponse.success(null, "Session removed successfully"));
@@ -89,7 +89,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions")
-    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = "X-User-Id", required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
+    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeAllSessions(UUID.fromString(userId));
             return ResponseEntity.ok(ApiResponse.success(null, "All sessions removed successfully"));

@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "jwt.expiration=1000",
         "jwt.secret=somesecret",
         "spring.datasource.driver-class-name=org.h2.Driver", 
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL", 
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
     }
 )
