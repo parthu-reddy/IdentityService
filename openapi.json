@@ -769,6 +769,7 @@
         }
       },
       "PageUserDTO" : {
+        "required" : [ "content", "empty", "first", "last", "number", "numberOfElements", "size", "totalElements", "totalPages" ],
         "type" : "object",
         "properties" : {
           "totalPages" : {
@@ -778,22 +779,6 @@
           "totalElements" : {
             "type" : "integer",
             "format" : "int64"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "first" : {
-            "type" : "boolean"
-          },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
           },
           "number" : {
             "type" : "integer",
@@ -812,14 +797,41 @@
           "last" : {
             "type" : "boolean"
           },
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SortObject"
+            }
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "empty" : {
             "type" : "boolean"
           }
         }
       },
       "PageableObject" : {
+        "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
         "type" : "object",
         "properties" : {
+          "offset" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SortObject"
+            }
+          },
           "paged" : {
             "type" : "boolean"
           },
@@ -833,16 +845,6 @@
           },
           "unpaged" : {
             "type" : "boolean"
-          },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
-          },
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
           }
         }
       },
