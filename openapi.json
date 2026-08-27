@@ -632,6 +632,9 @@
           "message" : {
             "type" : "string"
           },
+          "errorCode" : {
+            "type" : "string"
+          },
           "data" : {
             "type" : "string"
           },
@@ -661,6 +664,9 @@
           "message" : {
             "type" : "string"
           },
+          "errorCode" : {
+            "type" : "string"
+          },
           "data" : {
             "type" : "object"
           },
@@ -678,6 +684,9 @@
             "type" : "boolean"
           },
           "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
             "type" : "string"
           },
           "data" : {
@@ -700,6 +709,9 @@
             "type" : "boolean"
           },
           "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
             "type" : "string"
           },
           "data" : {
@@ -744,6 +756,9 @@
           "message" : {
             "type" : "string"
           },
+          "errorCode" : {
+            "type" : "string"
+          },
           "data" : {
             "$ref" : "#/components/schemas/PageUserDTO"
           },
@@ -768,11 +783,17 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "first" : {
             "type" : "boolean"
           },
-          "last" : {
-            "type" : "boolean"
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SortObject"
+            }
           },
           "number" : {
             "type" : "integer",
@@ -788,14 +809,8 @@
               "$ref" : "#/components/schemas/UserDTO"
             }
           },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
+          "last" : {
+            "type" : "boolean"
           },
           "empty" : {
             "type" : "boolean"
@@ -805,16 +820,6 @@
       "PageableObject" : {
         "type" : "object",
         "properties" : {
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
-          },
           "paged" : {
             "type" : "boolean"
           },
@@ -828,6 +833,16 @@
           },
           "unpaged" : {
             "type" : "boolean"
+          },
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SortObject"
+            }
+          },
+          "offset" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -859,6 +874,9 @@
             "type" : "boolean"
           },
           "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
             "type" : "string"
           },
           "data" : {
