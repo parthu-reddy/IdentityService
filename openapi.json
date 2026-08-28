@@ -780,10 +780,6 @@
             "type" : "integer",
             "format" : "int64"
           },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "size" : {
             "type" : "integer",
             "format" : "int32"
@@ -794,24 +790,25 @@
               "$ref" : "#/components/schemas/UserDTO"
             }
           },
-          "last" : {
-            "type" : "boolean"
-          },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
-          },
-          "first" : {
-            "type" : "boolean"
-          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
           },
+          "number" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "pageable" : {
             "$ref" : "#/components/schemas/PageableObject"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -826,12 +823,6 @@
             "type" : "integer",
             "format" : "int64"
           },
-          "sort" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SortObject"
-            }
-          },
           "paged" : {
             "type" : "boolean"
           },
@@ -845,25 +836,23 @@
           },
           "unpaged" : {
             "type" : "boolean"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           }
         }
       },
       "SortObject" : {
+        "required" : [ "empty", "sorted", "unsorted" ],
         "type" : "object",
         "properties" : {
-          "direction" : {
-            "type" : "string"
-          },
-          "nullHandling" : {
-            "type" : "string"
-          },
-          "ascending" : {
+          "empty" : {
             "type" : "boolean"
           },
-          "property" : {
-            "type" : "string"
+          "sorted" : {
+            "type" : "boolean"
           },
-          "ignoreCase" : {
+          "unsorted" : {
             "type" : "boolean"
           }
         }

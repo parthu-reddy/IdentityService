@@ -22,12 +22,20 @@ public class InternalUserController {
 
     private final InternalUserService internalUserService;
 
+    /**
+     * The one endpoint here with a service-to-service caller: ReviewsService reaches it through
+     * IdentityServiceClient while serving an authenticated end user, and FeignSecurityInterceptor
+     * propagates that user's own roles -- nothing anywhere mints a SERVICE role. So this admits any
+     * authenticated principal rather than a specific role, which is what it already relied on.
+     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserDTO>> getUser(@PathVariable UUID id, @RequestHeader("X-Calling-Service") String callingService) {
         UserDTO userDTO = internalUserService.getUser(id, callingService);
         return ResponseEntity.ok(ApiResponse.success(userDTO, "User retrieved successfully"));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/all")
     public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -37,6 +45,7 @@ public class InternalUserController {
         return ResponseEntity.ok(ApiResponse.success(users, "All users retrieved successfully"));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/{userId}/status")
     public ResponseEntity<ApiResponse<String>> updateUserStatus(
             @PathVariable UUID userId,
@@ -46,6 +55,8 @@ public class InternalUserController {
         return ResponseEntity.ok(ApiResponse.success(null, "User status updated successfully"));
     }
 
+    /** Enumerates every user holding a role; an admin capability, not a service one. */
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/by-role")
     public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getUsersByRole(
             @RequestParam RoleName role,
@@ -58,12 +69,20 @@ public class InternalUserController {
         return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
     }
 
+    /**
+     * Privilege GRANT. Until 2026-08-28 this controller carried no authorization at all, while
+     * IdentityMcpService.addRole(userId, roleName) exposed it as an MCP tool taking both the target
+     * user and the role from the caller -- a self-service route to ROLE_ADMIN.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/roles")
     public ResponseEntity<ApiResponse<String>> addRole(@PathVariable UUID id, @Valid @RequestBody RoleRequestDTO request, @RequestHeader("X-Calling-Service") String callingService) {
         internalUserService.addRoleToUser(id, request.getRoleName(), callingService);
         return ResponseEntity.ok(ApiResponse.success(null, "Role added successfully"));
     }
 
+    /** Privilege REVOKE; same reasoning as the grant above. */
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}/roles/{roleName}")
     public ResponseEntity<ApiResponse<String>> removeRole(@PathVariable UUID id, @PathVariable RoleName roleName, @RequestHeader("X-Calling-Service") String callingService) {
         internalUserService.removeRoleFromUser(id, roleName, callingService);
