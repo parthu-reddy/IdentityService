@@ -1,7 +1,7 @@
 # Builder stage
 FROM eclipse-temurin:17-jre-jammy as builder
 WORKDIR /builder
-COPY IdentityService/target/*.jar app.jar
+COPY IdentityService/target/*-SNAPSHOT.jar app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
 
 # Final stage
