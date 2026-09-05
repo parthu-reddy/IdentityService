@@ -1,7 +1,7 @@
 package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
-import com.fooddelivery.identity.dto.RoleRequestDTO;
+import com.fooddelivery.common.dto.identity.RoleRequestDTO;
 import com.fooddelivery.identity.dto.UserDTO;
 import com.fooddelivery.identity.service.InternalUserService;
 import org.springframework.http.ResponseEntity;
@@ -77,7 +77,7 @@ public class InternalUserController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/roles")
     public ResponseEntity<ApiResponse<String>> addRole(@PathVariable UUID id, @Valid @RequestBody RoleRequestDTO request, @RequestHeader("X-Calling-Service") String callingService) {
-        internalUserService.addRoleToUser(id, request.getRoleName(), callingService);
+        internalUserService.addRoleToUser(id, RoleName.valueOf(request.getRoleName()), callingService);
         return ResponseEntity.ok(ApiResponse.success(null, "Role added successfully"));
     }
 

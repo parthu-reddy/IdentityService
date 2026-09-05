@@ -6,7 +6,7 @@ import com.fooddelivery.identity.dto.UpdateProfileRequest;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 import com.fooddelivery.common.enums.RoleName;
-import com.fooddelivery.identity.dto.RoleRequestDTO;
+import com.fooddelivery.common.dto.identity.RoleRequestDTO;
 import java.util.UUID;
 
 @Service
@@ -51,7 +51,7 @@ public class IdentityMcpService {
     public String addRole(String userId, String roleName) {
         try {
             RoleRequestDTO roleRequestDTO = new RoleRequestDTO();
-            roleRequestDTO.setRoleName(RoleName.valueOf(roleName));
+            roleRequestDTO.setRoleName(roleName);
             return objectMapper.writeValueAsString(internalUserController.addRole(UUID.fromString(userId), roleRequestDTO, "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
