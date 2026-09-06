@@ -37,20 +37,20 @@ public class InternalUserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/all")
-    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getAllUsers(
+    public ResponseEntity<ApiResponse<com.fooddelivery.common.dto.PageResponseDto<UserDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<UserDTO> users = internalUserService.getAllUsers(pageable);
-        return ResponseEntity.ok(ApiResponse.success(users, "All users retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success(com.fooddelivery.common.dto.PageResponseDto.of(users), "All users retrieved successfully"));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/{userId}/status")
     public ResponseEntity<ApiResponse<String>> updateUserStatus(
             @PathVariable UUID userId,
-            @RequestBody Map<String, Boolean> status) {
-        boolean isActive = status.getOrDefault("isActive", true);
+            @Valid @RequestBody com.fooddelivery.identity.dto.StatusUpdateDTO status) {
+        boolean isActive = status.getIsActive() != null ? status.getIsActive() : true;
         internalUserService.updateUserStatus(userId, isActive);
         return ResponseEntity.ok(ApiResponse.success(null, "User status updated successfully"));
     }
@@ -58,7 +58,7 @@ public class InternalUserController {
     /** Enumerates every user holding a role; an admin capability, not a service one. */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/by-role")
-    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<UserDTO>>> getUsersByRole(
+    public ResponseEntity<ApiResponse<com.fooddelivery.common.dto.PageResponseDto<UserDTO>>> getUsersByRole(
             @RequestParam RoleName role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -66,7 +66,7 @@ public class InternalUserController {
         
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<UserDTO> users = internalUserService.getUsersByRole(role, callingService, pageable);
-        return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success(com.fooddelivery.common.dto.PageResponseDto.of(users), "Users retrieved successfully"));
     }
 
     /**

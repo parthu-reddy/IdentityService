@@ -86,10 +86,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "type" : "object",
-                "additionalProperties" : {
-                  "type" : "boolean"
-                }
+                "$ref" : "#/components/schemas/StatusUpdateDTO"
               }
             }
           },
@@ -372,7 +369,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageUserDTO"
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
                 }
               }
             }
@@ -409,7 +406,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageUserDTO"
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
                 }
               }
             }
@@ -644,13 +641,30 @@
           }
         }
       },
-      "RoleRequestDTO" : {
-        "required" : [ "roleName" ],
+      "StatusUpdateDTO" : {
+        "required" : [ "isActive" ],
         "type" : "object",
         "properties" : {
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "RoleRequestDTO" : {
+        "required" : [ "roleName", "serviceName" ],
+        "type" : "object",
+        "properties" : {
+          "serviceName" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9_\\-]+$",
+            "type" : "string"
+          },
           "roleName" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9_]+$",
+            "type" : "string"
           }
         }
       },
@@ -746,7 +760,7 @@
           }
         }
       },
-      "ApiResponsePageUserDTO" : {
+      "ApiResponsePageResponseDtoUserDTO" : {
         "required" : [ "message", "success", "timestamp" ],
         "type" : "object",
         "properties" : {
@@ -760,7 +774,7 @@
             "type" : "string"
           },
           "data" : {
-            "$ref" : "#/components/schemas/PageUserDTO"
+            "$ref" : "#/components/schemas/PageResponseDtoUserDTO"
           },
           "timestamp" : {
             "type" : "string",
@@ -768,29 +782,28 @@
           }
         }
       },
-      "PageUserDTO" : {
+      "PageResponseDtoUserDTO" : {
         "required" : [ "content", "empty", "first", "last", "number", "numberOfElements", "size", "totalElements", "totalPages" ],
         "type" : "object",
         "properties" : {
-          "totalPages" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "totalElements" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "content" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/UserDTO"
             }
           },
-          "numberOfElements" : {
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "size" : {
             "type" : "integer",
             "format" : "int32"
           },
@@ -801,58 +814,11 @@
           "first" : {
             "type" : "boolean"
           },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "PageableObject" : {
-        "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
-        "type" : "object",
-        "properties" : {
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "paged" : {
-            "type" : "boolean"
-          },
-          "pageNumber" : {
+          "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageSize" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "unpaged" : {
-            "type" : "boolean"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          }
-        }
-      },
-      "SortObject" : {
-        "required" : [ "empty", "sorted", "unsorted" ],
-        "type" : "object",
-        "properties" : {
           "empty" : {
-            "type" : "boolean"
-          },
-          "sorted" : {
-            "type" : "boolean"
-          },
-          "unsorted" : {
             "type" : "boolean"
           }
         }
