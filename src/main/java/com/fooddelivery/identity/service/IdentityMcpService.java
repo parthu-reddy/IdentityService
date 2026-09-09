@@ -14,14 +14,14 @@ import java.util.UUID;
 public class IdentityMcpService {
     @java.lang.SuppressWarnings("all")
 
-    private final InternalUserController internalUserController;
+    private final AdminUserController adminUserController;
     private final AuthController authController;
     private final AdminOtpController adminOtpController;
     private final UserController userController;
     private final ObjectMapper objectMapper;
 
-    public IdentityMcpService(InternalUserController internalUserController, AuthController authController, AdminOtpController adminOtpController, UserController userController, ObjectMapper objectMapper) {
-        this.internalUserController = internalUserController;
+    public IdentityMcpService(AdminUserController adminUserController, AuthController authController, AdminOtpController adminOtpController, UserController userController, ObjectMapper objectMapper) {
+        this.adminUserController = adminUserController;
         this.authController = authController;
         this.adminOtpController = adminOtpController;
         this.userController = userController;
@@ -32,7 +32,7 @@ public class IdentityMcpService {
     @Tool(description = "Get user by ID. Provide userId.")
     public String getUser(String userId) {
         try {
-            return objectMapper.writeValueAsString(internalUserController.getUser(UUID.fromString(userId), "MCP_SERVICE").getBody());
+            return objectMapper.writeValueAsString(adminUserController.getUser(UUID.fromString(userId), "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
@@ -41,7 +41,7 @@ public class IdentityMcpService {
     @Tool(description = "Get users by role. Provide roleName.")
     public String getUsersByRole(String roleName) {
         try {
-            return objectMapper.writeValueAsString(internalUserController.getUsersByRole(RoleName.valueOf(roleName), 0, 50, "MCP_SERVICE").getBody());
+            return objectMapper.writeValueAsString(adminUserController.getUsersByRole(RoleName.valueOf(roleName), 0, 50, "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
@@ -52,7 +52,7 @@ public class IdentityMcpService {
         try {
             RoleRequestDTO roleRequestDTO = new RoleRequestDTO();
             roleRequestDTO.setRoleName(roleName);
-            return objectMapper.writeValueAsString(internalUserController.addRole(UUID.fromString(userId), roleRequestDTO, "MCP_SERVICE").getBody());
+            return objectMapper.writeValueAsString(adminUserController.addRole(UUID.fromString(userId), roleRequestDTO, "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
@@ -61,7 +61,7 @@ public class IdentityMcpService {
     @Tool(description = "Remove role from user. Provide userId and roleName.")
     public String removeRole(String userId, String roleName) {
         try {
-            return objectMapper.writeValueAsString(internalUserController.removeRole(UUID.fromString(userId), RoleName.valueOf(roleName), "MCP_SERVICE").getBody());
+            return objectMapper.writeValueAsString(adminUserController.removeRole(UUID.fromString(userId), RoleName.valueOf(roleName), "MCP_SERVICE").getBody());
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

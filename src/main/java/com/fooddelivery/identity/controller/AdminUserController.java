@@ -2,23 +2,36 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.common.dto.identity.RoleRequestDTO;
+import com.fooddelivery.common.enums.RoleName;
 import com.fooddelivery.identity.dto.UserDTO;
 import com.fooddelivery.identity.service.InternalUserService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.UUID;
-import org.springframework.security.access.prepost.PreAuthorize;
-import com.fooddelivery.common.enums.RoleName;
-import java.util.Map;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 
+/**
+ * User administration, on the path the gateway actually lets a browser reach.
+ *
+ * <p>These five endpoints were on {@code InternalUserController} at {@code /api/v1/internal/users/**}.
+ * {@code GlobalJwtAuthFilter} 403s external requests to {@code /api/v1/internal/**} unless the path
+ * begins {@code /api/v1/internal/admin/} — so the whole admin user-management screen was refused at
+ * the gateway even though {@code admin-identity-routes} routed it. Found 2026-09-09 auditing every
+ * browser path against the gateway's routes, RBAC rules and the services' specs.
+ *
+ * <p>The split follows the convention every other admin screen already uses
+ * ({@code /internal/admin/orders}, {@code /internal/admin/refunds}, {@code /internal/admin/ledger}):
+ * the admin surface is separate from the service-to-service one. {@code InternalUserController}
+ * keeps only {@code GET /{id}}, its single Feign caller.
+ */
 @RestController
-@RequestMapping("/api/v1/internal/users")
+@RequestMapping("/api/v1/internal/admin/users")
+@RequiredArgsConstructor
 @lombok.extern.slf4j.Slf4j
-public class InternalUserController {
-    @java.lang.SuppressWarnings("all")
+public class AdminUserController {
 
     private final InternalUserService internalUserService;
 
@@ -36,7 +49,7 @@ public class InternalUserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/all")
+    @GetMapping("/all")
     public ResponseEntity<ApiResponse<com.fooddelivery.common.dto.PageResponseDto<UserDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
@@ -46,7 +59,7 @@ public class InternalUserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/admin/{userId}/status")
+    @PutMapping("/{userId}/status")
     public ResponseEntity<ApiResponse<String>> updateUserStatus(
             @PathVariable UUID userId,
             @Valid @RequestBody com.fooddelivery.identity.dto.StatusUpdateDTO status) {
@@ -87,10 +100,5 @@ public class InternalUserController {
     public ResponseEntity<ApiResponse<String>> removeRole(@PathVariable UUID id, @PathVariable RoleName roleName, @RequestHeader("X-Calling-Service") String callingService) {
         internalUserService.removeRoleFromUser(id, roleName, callingService);
         return ResponseEntity.ok(ApiResponse.success(null, "Role removed successfully"));
-    }
-
-    @java.lang.SuppressWarnings("all")
-    public InternalUserController(final InternalUserService internalUserService) {
-        this.internalUserService = internalUserService;
     }
 }

@@ -69,9 +69,9 @@
         }
       }
     },
-    "/api/v1/internal/users/admin/{userId}/status" : {
+    "/api/v1/internal/admin/users/{userId}/status" : {
       "put" : {
-        "tags" : [ "internal-user-controller" ],
+        "tags" : [ "admin-user-controller" ],
         "operationId" : "updateUserStatus",
         "parameters" : [ {
           "name" : "userId",
@@ -87,50 +87,6 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/StatusUpdateDTO"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/users/{id}/roles" : {
-      "post" : {
-        "tags" : [ "internal-user-controller" ],
-        "operationId" : "addRole",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RoleRequestDTO"
               }
             }
           },
@@ -291,10 +247,10 @@
         }
       }
     },
-    "/api/v1/internal/users/{id}" : {
-      "get" : {
-        "tags" : [ "internal-user-controller" ],
-        "operationId" : "getUser",
+    "/api/v1/internal/admin/users/{id}/roles" : {
+      "post" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "addRole",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -311,102 +267,23 @@
             "type" : "string"
           }
         } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
-                }
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleRequestDTO"
               }
             }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/users/by-role" : {
-      "get" : {
-        "tags" : [ "internal-user-controller" ],
-        "operationId" : "getUsersByRole",
-        "parameters" : [ {
-          "name" : "role",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 50
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "description" : "OK",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/users/admin/all" : {
-      "get" : {
-        "tags" : [ "internal-user-controller" ],
-        "operationId" : "getAllUsers",
-        "parameters" : [ {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 50
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
+                  "$ref" : "#/components/schemas/ApiResponseString"
                 }
               }
             }
@@ -512,10 +389,10 @@
         }
       }
     },
-    "/api/v1/internal/users/{id}/roles/{roleName}" : {
-      "delete" : {
-        "tags" : [ "internal-user-controller" ],
-        "operationId" : "removeRole",
+    "/api/v1/internal/admin/users/{id}" : {
+      "get" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "getUser",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -523,14 +400,6 @@
           "schema" : {
             "type" : "string",
             "format" : "uuid"
-          }
-        }, {
-          "name" : "roleName",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
           }
         }, {
           "name" : "X-Calling-Service",
@@ -546,7 +415,96 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
+                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/admin/users/by-role" : {
+      "get" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "getUsersByRole",
+        "parameters" : [ {
+          "name" : "role",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        }, {
+          "name" : "X-Calling-Service",
+          "in" : "header",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/admin/users/all" : {
+      "get" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "getAllUsers",
+        "parameters" : [ {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
                 }
               }
             }
@@ -587,6 +545,48 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/admin/users/{id}/roles/{roleName}" : {
+      "delete" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "removeRole",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "roleName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+          }
+        }, {
+          "name" : "X-Calling-Service",
+          "in" : "header",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseString"
                 }
               }
             }
@@ -650,24 +650,6 @@
           }
         }
       },
-      "RoleRequestDTO" : {
-        "required" : [ "roleName", "serviceName" ],
-        "type" : "object",
-        "properties" : {
-          "serviceName" : {
-            "maxLength" : 50,
-            "minLength" : 0,
-            "pattern" : "^[A-Za-z0-9_\\-]+$",
-            "type" : "string"
-          },
-          "roleName" : {
-            "maxLength" : 50,
-            "minLength" : 0,
-            "pattern" : "^[A-Za-z0-9_]+$",
-            "type" : "string"
-          }
-        }
-      },
       "ApiResponseVoid" : {
         "required" : [ "message", "success", "timestamp" ],
         "type" : "object",
@@ -687,6 +669,24 @@
           "timestamp" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "RoleRequestDTO" : {
+        "required" : [ "roleName", "serviceName" ],
+        "type" : "object",
+        "properties" : {
+          "serviceName" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9_\\-]+$",
+            "type" : "string"
+          },
+          "roleName" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9_]+$",
+            "type" : "string"
           }
         }
       },
@@ -712,6 +712,56 @@
           "timestamp" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListSessionInfo" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SessionInfo"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SessionInfo" : {
+        "required" : [ "browser", "deviceInfo", "lastActive", "os", "serviceName", "sessionId" ],
+        "type" : "object",
+        "properties" : {
+          "sessionId" : {
+            "type" : "string"
+          },
+          "deviceInfo" : {
+            "type" : "string"
+          },
+          "os" : {
+            "type" : "string"
+          },
+          "browser" : {
+            "type" : "string"
+          },
+          "lastActive" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "serviceName" : {
+            "type" : "string"
           }
         }
       },
@@ -820,56 +870,6 @@
           },
           "empty" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponseListSessionInfo" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SessionInfo"
-            }
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SessionInfo" : {
-        "required" : [ "browser", "deviceInfo", "lastActive", "os", "serviceName", "sessionId" ],
-        "type" : "object",
-        "properties" : {
-          "sessionId" : {
-            "type" : "string"
-          },
-          "deviceInfo" : {
-            "type" : "string"
-          },
-          "os" : {
-            "type" : "string"
-          },
-          "browser" : {
-            "type" : "string"
-          },
-          "lastActive" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "serviceName" : {
-            "type" : "string"
           }
         }
       }
