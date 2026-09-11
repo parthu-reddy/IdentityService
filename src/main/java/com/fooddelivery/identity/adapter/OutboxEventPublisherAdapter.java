@@ -22,7 +22,7 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
     @Transactional
     public void publishNotificationEvent(String recipientPhoneNumber, String channelType, String otp) {
         try {
-            NotificationRequestEvent event = NotificationRequestEvent.builder().explicitRecipient(recipientPhoneNumber).channel(com.fooddelivery.common.enums.ChannelType.valueOf(channelType)).eventName("OTP_LOGIN").payload(java.util.Map.of("otp", otp)).build();
+            NotificationRequestEvent event = NotificationRequestEvent.builder().explicitRecipient(recipientPhoneNumber).channel(com.fooddelivery.common.enums.ChannelType.valueOf(channelType)).eventName(com.fooddelivery.common.constants.NotificationTemplate.OTP_LOGIN).templateParams(java.util.List.of(otp)).payload(java.util.Map.of("otp", otp)).build();
             OutboxEventEntity outboxEvent = OutboxEventEntity.builder()
                 .id(UUID.randomUUID())
                 .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
