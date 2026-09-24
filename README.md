@@ -12,3 +12,5 @@ The IdentityService manages user authentication, authorization, and role managem
 - **Token Management**: Issues signed JWTs containing user claims (roles, phone number).
 - **Internal Security**: Provides internal APIs (protected by `PreAuthFilter`) for other services to create user records or assign roles implicitly (e.g., automatically granting `ROLE_RESTAURANT_OWNER` when the RestaurantApp registers a new owner).
 
+
+<!-- dummy data -->
