@@ -8,7 +8,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hibernate.annotations.CreationTimestamp;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "user_devices")@lombok.AllArgsConstructor
@@ -30,7 +30,7 @@ public class UserDevice {
     private String portal;
     @CreationTimestamp
     @Column(name = "login_time")
-    private LocalDateTime loginTime;
+    private Instant loginTime;
 
 
 }

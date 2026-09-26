@@ -230,7 +230,9 @@ public class AuthService {
     }
 
     private String generateJwtToken(AppUser user, List<String> roleNames, String sessionId) {
-        return Jwts.builder().setSubject(user.getId().toString()).claim("phone", user.getPhoneNumber()).claim("roles", roleNames).claim("sessionId", sessionId).setIssuedAt(new Date()).setExpiration(new Date((new Date()).getTime() + jwtExpirationMs)).signWith(privateKey, SignatureAlgorithm.RS256).compact();
+        // JJWT's builder takes java.util.Date; it is only ever made from an Instant, here at the boundary.
+        java.time.Instant issuedAt = java.time.Instant.now();
+        return Jwts.builder().setSubject(user.getId().toString()).claim("phone", user.getPhoneNumber()).claim("roles", roleNames).claim("sessionId", sessionId).setIssuedAt(Date.from(issuedAt)).setExpiration(Date.from(issuedAt.plusMillis(jwtExpirationMs))).signWith(privateKey, SignatureAlgorithm.RS256).compact();
     }
 
     @java.lang.SuppressWarnings("all")

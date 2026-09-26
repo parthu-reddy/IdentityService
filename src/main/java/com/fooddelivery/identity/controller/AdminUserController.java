@@ -48,6 +48,13 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.success(userDTO, "User retrieved successfully"));
     }
 
+    /** Support finds a user by the number they sign in with (10 digits). 404 when nobody does. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/by-phone")
+    public ResponseEntity<ApiResponse<UserDTO>> getUserByPhone(@RequestParam String phone) {
+        return ResponseEntity.ok(ApiResponse.success(internalUserService.getUserByPhone(phone), "User retrieved successfully"));
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<com.fooddelivery.common.dto.PageResponseDto<UserDTO>>> getAllUsers(

@@ -475,6 +475,32 @@
         }
       }
     },
+    "/api/v1/internal/admin/users/by-phone" : {
+      "get" : {
+        "tags" : [ "admin-user-controller" ],
+        "operationId" : "getUserByPhone",
+        "parameters" : [ {
+          "name" : "phone",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/internal/admin/users/all" : {
       "get" : {
         "tags" : [ "admin-user-controller" ],

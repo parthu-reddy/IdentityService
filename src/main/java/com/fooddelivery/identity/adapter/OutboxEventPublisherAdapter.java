@@ -29,7 +29,7 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
                 .aggregateId(recipientPhoneNumber)
                 .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
                 .payload(objectMapper.writeValueAsString(event))
-                .createdAt(java.time.LocalDateTime.now())
+                .createdAt(java.time.Instant.now())
                 .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
                 .build();
             outboxEventRepository.save(outboxEvent);

@@ -37,6 +37,7 @@ public abstract class ContractTestBase {
                 .thenReturn(bucket);
 
         AuthController controller = new AuthController(authService, rateLimitingService);
-        RestAssuredMockMvc.standaloneSetup(controller);
+        // Serialize as production does: see PlatformJson (contract-harness Jackson drift).
+        com.fooddelivery.common.contract.PlatformJson.standaloneSetup(controller);
     }
 }

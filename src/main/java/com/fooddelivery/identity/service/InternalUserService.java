@@ -30,6 +30,24 @@ public class InternalUserService {
         return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(roleNames).build();
     }
 
+    /**
+     * The user who signs in with this number, with every role they hold. Support looks customers
+     * up this way: the admin search box says "User ID / Phone", and a phone went to GET /{id}.
+     * The login stores the 10 digits the sign-in form sends (AuthForm strips everything else), so
+     * that is the only form looked up; the admin screen normalises what was typed.
+     */
+    @Transactional(readOnly = true)
+    public UserDTO getUserByPhone(String phoneNumber) {
+        if (phoneNumber == null || !phoneNumber.matches("\\d{10}")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A phone number is the 10 digits used to sign in");
+        }
+        AppUser user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No user signs in with that number"));
+        List<RoleName> roleNames = userRoleRepository.findByUserId(user.getId()).stream()
+                .map(UserRole::getRoleName).collect(Collectors.toList());
+        return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(roleNames).build();
+    }
+
     @Transactional(readOnly = true)
     public List<UserDTO> getUsersByRole(RoleName roleName, String serviceName) {
         List<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName);
