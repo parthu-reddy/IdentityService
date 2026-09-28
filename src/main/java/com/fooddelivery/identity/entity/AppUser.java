@@ -32,7 +32,8 @@ public class AppUser {
     @Column(name = "email")
     private String email;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserRole> roles;
+    @lombok.Builder.Default
+    private List<UserRole> roles = new ArrayList<>();
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
