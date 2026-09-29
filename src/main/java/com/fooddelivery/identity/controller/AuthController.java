@@ -3,6 +3,7 @@ package com.fooddelivery.identity.controller;
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.service.AuthService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,9 +27,22 @@ public class AuthController {
     private final AuthService authService;
     private final com.fooddelivery.common.service.RateLimitingService rateLimitingService;
 
+    @Value("${identity.auth.bucket.capacity:10}")
+    private int authBucketCapacity = 10;
+
+    @Value("${identity.auth.bucket.refill-tokens:10}")
+    private int authBucketRefillTokens = 10;
+
+    @Value("${identity.auth.bucket.refill-duration:PT1M}")
+    private java.time.Duration authBucketRefillDuration = java.time.Duration.ofMinutes(1);
+
     private boolean isRateLimited(String clientKey) {
         if (clientKey == null || clientKey.isBlank() || clientKey.equals("unknown")) return true;
-        io.github.bucket4j.Bucket bucket = rateLimitingService.resolveBucket("auth:" + clientKey, 10, 10, java.time.Duration.ofMinutes(1));
+        io.github.bucket4j.Bucket bucket = rateLimitingService.resolveBucket(
+                "auth:" + clientKey,
+                authBucketCapacity,
+                authBucketRefillTokens,
+                authBucketRefillDuration);
         return !bucket.tryConsume(1);
     }
 

@@ -56,6 +56,14 @@ public class AuthService {
     private Resource publicKeyResource;
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
+    @Value("${identity.auth.initiate.max-attempts:10}")
+    private int initiateMaxAttempts = 10;
+    @Value("${identity.auth.initiate.window-minutes:10}")
+    private int initiateWindowMinutes = 10;
+    @Value("${identity.auth.verify.max-attempts:5}")
+    private int verifyMaxAttempts = 5;
+    @Value("${identity.auth.verify.window-minutes:5}")
+    private int verifyWindowMinutes = 5;
     private PrivateKey privateKey;
     private PublicKey publicKey;
     private io.jsonwebtoken.JwtParser jwtParser;
@@ -85,8 +93,8 @@ public class AuthService {
 
     public void initiateLogin(String phoneNumber, String serviceName) {
         String rateLimitKey = "RATELIMIT:INITIATE:" + phoneNumber;
-        Long attempts = cachePort.increment(rateLimitKey, 10);
-        if (attempts != null && attempts > 10) {
+        Long attempts = cachePort.increment(rateLimitKey, initiateWindowMinutes);
+        if (attempts != null && attempts > initiateMaxAttempts) {
             log.warn("Rate limit exceeded for phone number: {}", phoneNumber);
             throw new IllegalArgumentException("Too many login attempts. Please try again later.");
         }
@@ -100,8 +108,8 @@ public class AuthService {
     @Transactional
     public String verifyOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
         String rateLimitKey = "RATELIMIT:VERIFY:" + phoneNumber;
-        Long attempts = cachePort.increment(rateLimitKey, 5);
-        if (attempts != null && attempts > 5) {
+        Long attempts = cachePort.increment(rateLimitKey, verifyWindowMinutes);
+        if (attempts != null && attempts > verifyMaxAttempts) {
             log.warn("Brute force attempt detected for phone number: {}", phoneNumber);
             cachePort.delete("OTP:" + phoneNumber + ":" + serviceName); // Invalidate the OTP
             throw new IllegalArgumentException("Too many failed attempts. Please request a new OTP.");
