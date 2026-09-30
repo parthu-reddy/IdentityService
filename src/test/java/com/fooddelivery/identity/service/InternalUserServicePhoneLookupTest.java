@@ -29,7 +29,8 @@ class InternalUserServicePhoneLookupTest {
 
     private final UserRepository users = mock(UserRepository.class);
     private final UserRoleRepository roles = mock(UserRoleRepository.class);
-    private final InternalUserService service = new InternalUserService(users, roles);
+    private final AuthService authService = mock(AuthService.class);
+    private final InternalUserService service = new InternalUserService(users, roles, authService);
 
     @Test
     void findsTheUserByTheNumberTheySignInWith_withEveryRole() {

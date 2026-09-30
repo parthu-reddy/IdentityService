@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -26,12 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 // Supplied here rather than added to the shared profile, so the contract tests keep the exact
 // configuration they were verified against.
 @SpringBootTest(properties = "jwt.expiration=3600000")
-// "dev" alongside contract-test because that is how this service actually runs: AdminOtpController
-// is @Profile("dev") and IdentityMcpService is an unconditional @Service that takes it as a
-// constructor parameter, so the context only starts when dev is active. Deployment/.env.defaults
-// sets SPRING_PROFILES_ACTIVE=dev, which is why nobody has hit it. Booting without dev here would
-// only prove the defect, not guard the wiring.
-@ActiveProfiles({"contract-test", "dev"})
+// The OTP inspection endpoint is strictly e2e-profiled and the unsafe MCP tool bean is removed.
+// Keep this production-like context free of either test-only capability.
+@ActiveProfiles("contract-test")
 class ContextLoadTest {
 
     // The contract-test profile excludes Redis auto-configuration, so nothing supplies these.
@@ -49,5 +47,12 @@ class ContextLoadTest {
     @Test
     void contextLoads() {
         assertTrue(context.getBeanDefinitionCount() > 0, "an empty context is not a started one");
+    }
+
+    @Test
+    void e2eOtpHarnessIsAbsentWithoutTheE2eProfile() {
+        assertFalse(context.containsBean("e2eOtpController"));
+        assertTrue(context.getBeansOfType(
+                com.fooddelivery.identity.service.E2eRunnerSecretVerifier.class).isEmpty());
     }
 }

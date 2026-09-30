@@ -12,9 +12,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Every HTTP endpoint in this module must carry an authorization rule, at class or method level.
  *
  * <p>Added 2026-08-28 after {@code InternalUserController} was found with authorization on none of
- * its six endpoints -- including {@code POST /{id}/roles}, which grants a role. It was reachable in
- * process through {@code IdentityMcpService.addRole(userId, roleName)}, an MCP tool taking both the
- * target user and the role from its caller: a self-service route to ROLE_ADMIN.
+ * its six endpoints -- including {@code POST /{id}/roles}, which grants a role. An unauthenticated
+ * MCP tool also invoked those controller methods directly; that tool is removed. This test keeps
+ * future HTTP endpoints from creating the same authorization gap.
  *
  * <p>Four other modules already had this test. IdentityService did not, which is why the gap
  * survived. Sibling controllers here were annotated; nothing required the next one to be.

@@ -2,6 +2,10 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.service.AuthService;
+import com.fooddelivery.identity.service.AuthPortal;
+import com.fooddelivery.identity.service.DevOtpAccessPolicy;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,13 +23,15 @@ import com.fooddelivery.identity.dto.SessionInfo;
 
 @RestController
 @RequestMapping("/api/v1/internal/auth")
-@PreAuthorize("permitAll()")
 @lombok.extern.slf4j.Slf4j
 public class AuthController {
     @java.lang.SuppressWarnings("all")
 
     private final AuthService authService;
     private final com.fooddelivery.common.service.RateLimitingService rateLimitingService;
+
+    @Autowired
+    private ObjectProvider<DevOtpAccessPolicy> devOtpAccessPolicy;
 
     @Value("${identity.auth.bucket.capacity:10}")
     private int authBucketCapacity = 10;
@@ -47,15 +53,22 @@ public class AuthController {
     }
 
     @PostMapping("/initiate")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<String>> initiateLogin(@RequestParam String phoneNumber, @RequestHeader("X-Calling-Service") String serviceName) {
         if (isRateLimited(phoneNumber)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
         }
         authService.initiateLogin(phoneNumber, serviceName);
-        return ResponseEntity.ok(ApiResponse.success(null, "OTP sent successfully"));
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        DevOtpAccessPolicy devPolicy = devOtpAccessPolicy == null ? null : devOtpAccessPolicy.getIfAvailable();
+        if (devPolicy != null && devPolicy.allows(phoneNumber, AuthPortal.fromCallerService(serviceName))) {
+            response.header(DevOtpAccessPolicy.AVAILABILITY_HEADER, "true");
+        }
+        return response.body(ApiResponse.success(null, "OTP sent successfully"));
     }
 
     @PostMapping("/verify")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<String>> verifyOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
         if (isRateLimited(phoneNumber)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
@@ -65,6 +78,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
         boolean loggedOut = false;
         // Primary: use gateway-injected headers (already validated by the gateway)
@@ -85,6 +99,7 @@ public class AuthController {
     }
 
     @GetMapping("/sessions")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             List<SessionInfo> sessions = authService.getUserSessions(UUID.fromString(userId));
@@ -94,6 +109,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions/{sessionId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService, @PathVariable String sessionId) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeSession(UUID.fromString(userId), sessionId);
@@ -103,6 +119,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
         if (userId != null && !userId.isEmpty()) {
             authService.removeAllSessions(UUID.fromString(userId));

@@ -12,12 +12,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fooddelivery.common.enums.RoleName;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.KeyFactory;
@@ -33,9 +31,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
-import java.util.Map;
 import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.web.server.ResponseStatusException;
 import jakarta.annotation.PostConstruct;
 
 @Service
@@ -92,6 +90,7 @@ public class AuthService {
     }
 
     public void initiateLogin(String phoneNumber, String serviceName) {
+        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
         String rateLimitKey = "RATELIMIT:INITIATE:" + phoneNumber;
         Long attempts = cachePort.increment(rateLimitKey, initiateWindowMinutes);
         if (attempts != null && attempts > initiateMaxAttempts) {
@@ -99,26 +98,57 @@ public class AuthService {
             throw new IllegalArgumentException("Too many login attempts. Please try again later.");
         }
         String otp = String.format("%06d", secureRandom.nextInt(1000000));
-        String normalizedServiceName = serviceName != null ? serviceName.toLowerCase() : "customer";
-        cachePort.put("OTP:" + phoneNumber + ":" + normalizedServiceName, otp, 5);
+        cachePort.put("OTP:" + phoneNumber + ":" + portal.sessionServiceName(), otp, 5);
         eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS", otp);
-        log.info("Initiated login for {}, service {}, OTP generated.", phoneNumber, serviceName);
+        log.info("Initiated login for {}, portal {}, OTP generated.", phoneNumber, portal.name());
     }
 
     @Transactional
     public String verifyOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
+        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
         String rateLimitKey = "RATELIMIT:VERIFY:" + phoneNumber;
         Long attempts = cachePort.increment(rateLimitKey, verifyWindowMinutes);
         if (attempts != null && attempts > verifyMaxAttempts) {
             log.warn("Brute force attempt detected for phone number: {}", phoneNumber);
-            cachePort.delete("OTP:" + phoneNumber + ":" + serviceName); // Invalidate the OTP
+            cachePort.delete("OTP:" + phoneNumber + ":" + portal.sessionServiceName()); // Invalidate the OTP
             throw new IllegalArgumentException("Too many failed attempts. Please request a new OTP.");
         }
-        String normalizedServiceName = serviceName != null ? serviceName.toLowerCase() : "customer";
+        String normalizedServiceName = portal.sessionServiceName();
         String cacheKey = "OTP:" + phoneNumber + ":" + normalizedServiceName;
         String cachedOtp = cachePort.get(cacheKey);
         if (cachedOtp != null && cachedOtp.equals(otp)) {
-            AppUser user = userRepository.findByPhoneNumber(phoneNumber).orElseGet(() -> userRepository.save(AppUser.builder().phoneNumber(phoneNumber).build()));
+            AppUser user = userRepository.findByPhoneNumber(phoneNumber).orElseGet(() -> {
+                if (!portal.selfRegistrationAllowed()) {
+                    throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                            "This account has not been provisioned for the selected portal");
+                }
+                return userRepository.save(AppUser.builder().phoneNumber(phoneNumber).isActive(true).build());
+            });
+            if (!user.isActive()) {
+                cachePort.delete(cacheKey);
+                throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                        "This account is inactive");
+            }
+
+            List<UserRole> assignedRoles = userRoleRepository.findByUserId(user.getId());
+            List<String> finalRoleNames = assignedRoles.stream()
+                    .filter(portal::matches)
+                    .map(assignment -> assignment.getRoleName().name())
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (finalRoleNames.isEmpty() && portal.selfRegistrationAllowed()) {
+                userRoleRepository.save(UserRole.builder()
+                        .user(user)
+                        .serviceName(portal.canonicalServiceName())
+                        .roleName(portal.role())
+                        .build());
+                finalRoleNames = List.of(portal.role().name());
+            }
+            if (finalRoleNames.isEmpty()) {
+                cachePort.delete(cacheKey);
+                throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                        "This account has not been provisioned for the selected portal");
+            }
             List<SessionInfo> activeSessions = getActiveSessions(user.getId());
             if (removeSessionId != null && !removeSessionId.isEmpty()) {
                 activeSessions.removeIf(session -> session.getSessionId().equals(removeSessionId));
@@ -145,32 +175,6 @@ public class AuthService {
             }
             cachePort.delete(cacheKey);
             cachePort.delete(rateLimitKey); // Reset verification attempts on success
-            RoleName defaultRoleName = null;
-            if (serviceName != null) {
-                String normalized = serviceName.toUpperCase();
-                if (normalized.contains(RoleName.CUSTOMER.name())) {
-                    defaultRoleName = RoleName.CUSTOMER;
-                } else if (normalized.contains(RoleName.DELIVERY.name())) {
-                    defaultRoleName = RoleName.DELIVERY;
-                } else if (normalized.contains(RoleName.RESTAURANT.name())) {
-                    defaultRoleName = RoleName.RESTAURANT;
-                } else if (normalized.contains(RoleName.ADMIN.name())) {
-                    defaultRoleName = RoleName.ADMIN;
-                }
-            }
-            List<String> finalRoleNames = new ArrayList<>();
-            if (defaultRoleName != null) {
-                List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
-                if (existingRoles.isEmpty()) {
-                    userRoleRepository.save(UserRole.builder().user(user).serviceName(serviceName).roleName(defaultRoleName).build());
-                    finalRoleNames.add(defaultRoleName.name());
-                } else {
-                    finalRoleNames = existingRoles.stream().map(r -> r.getRoleName().name()).collect(Collectors.toList());
-                }
-            } else {
-                List<UserRole> existingRoles = userRoleRepository.findByUserIdAndServiceName(user.getId(), serviceName);
-                finalRoleNames = existingRoles.stream().map(r -> r.getRoleName().name()).collect(Collectors.toList());
-            }
             String newSessionId = UUID.randomUUID().toString();
             activeSessions.add(SessionInfo.builder().sessionId(newSessionId).deviceInfo(deviceInfo != null ? deviceInfo : "Unknown Device").os(os != null ? os : "Unknown OS").browser(browser != null ? browser : "Unknown Browser").lastActive(System.currentTimeMillis()).serviceName(normalizedServiceName).build());
             saveActiveSessions(user.getId(), activeSessions);

@@ -22,9 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class IdentityApplicationStartupTest {
 
     @org.springframework.boot.test.mock.mockito.MockBean
-    private com.fooddelivery.identity.controller.AdminOtpController adminOtpController;
-
-    @org.springframework.boot.test.mock.mockito.MockBean
     private com.fooddelivery.common.service.RateLimitingService rateLimitingService;
     @org.springframework.boot.test.mock.mockito.MockBean
     private io.github.bucket4j.Bucket bucket;

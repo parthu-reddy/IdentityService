@@ -119,9 +119,6 @@ public class OpenApiGenerationTest {
     private RedisConnectionFactory redisConnectionFactory;
     @MockBean
     private com.fooddelivery.common.service.RateLimitingService rateLimitingService;
-    @MockBean
-    private com.fooddelivery.identity.controller.AdminOtpController adminOtpController;
-
     @Autowired(required = false)
     private MockMvc mockMvc;
 
