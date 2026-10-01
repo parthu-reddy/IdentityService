@@ -19,10 +19,10 @@ class E2eSeededAccountAllowlistTest {
         assertTrue(allowlist.allows("7000000030", AuthPortal.DELIVERY));
         assertTrue(allowlist.allows("1000000001", AuthPortal.ADMIN));
 
-        assertFalse(allowlist.allows("8000000501", AuthPortal.CUSTOMER));
-        assertFalse(allowlist.allows("9000000011", AuthPortal.RESTAURANT));
-        assertFalse(allowlist.allows("7000000031", AuthPortal.DELIVERY));
-        assertFalse(allowlist.allows("1000000002", AuthPortal.ADMIN));
+        assertFalse(allowlist.allows("8000000505", AuthPortal.CUSTOMER));
+        assertFalse(allowlist.allows("9000000015", AuthPortal.RESTAURANT));
+        assertFalse(allowlist.allows("7000000035", AuthPortal.DELIVERY));
+        assertFalse(allowlist.allows("1000000003", AuthPortal.ADMIN));
         assertFalse(allowlist.allows("8000000001", AuthPortal.ADMIN));
     }
 }

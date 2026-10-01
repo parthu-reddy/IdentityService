@@ -55,7 +55,7 @@ class E2eOtpControllerTest {
     @Test
     void directOtpLookupRejectsASecretForAnUnseededOrWrongPortalAccount() {
         ResponseStatusException unseeded = assertThrows(ResponseStatusException.class,
-                () -> controller.getOtp(List.of("runner-secret"), "8000000501", "CUSTOMER"));
+                () -> controller.getOtp(List.of("runner-secret"), "8000000505", "CUSTOMER"));
         ResponseStatusException wrongPortal = assertThrows(ResponseStatusException.class,
                 () -> controller.getOtp(List.of("runner-secret"), "8000000001", "ADMIN"));
 
