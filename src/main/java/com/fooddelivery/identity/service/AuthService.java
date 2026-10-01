@@ -105,7 +105,22 @@ public class AuthService {
 
     @Transactional
     public String verifyOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
+        return completeOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId, false);
+    }
+
+    /** Explicit public signup. This enrolls a partner for onboarding, never approves KYC or duty. */
+    @Transactional
+    public String registerWithOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
+        if (AuthPortal.fromCallerService(serviceName) == AuthPortal.ADMIN) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Administrator accounts must be provisioned");
+        }
+        return completeOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId, true);
+    }
+
+    private String completeOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId, boolean registration) {
         AuthPortal portal = AuthPortal.fromCallerService(serviceName);
+        boolean mayEnroll = registration || portal.selfRegistrationAllowed();
         String rateLimitKey = "RATELIMIT:VERIFY:" + phoneNumber;
         Long attempts = cachePort.increment(rateLimitKey, verifyWindowMinutes);
         if (attempts != null && attempts > verifyMaxAttempts) {
@@ -118,7 +133,7 @@ public class AuthService {
         String cachedOtp = cachePort.get(cacheKey);
         if (cachedOtp != null && cachedOtp.equals(otp)) {
             AppUser user = userRepository.findByPhoneNumber(phoneNumber).orElseGet(() -> {
-                if (!portal.selfRegistrationAllowed()) {
+                if (!mayEnroll) {
                     throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
                             "This account has not been provisioned for the selected portal");
                 }
@@ -136,7 +151,7 @@ public class AuthService {
                     .map(assignment -> assignment.getRoleName().name())
                     .distinct()
                     .collect(Collectors.toList());
-            if (finalRoleNames.isEmpty() && portal.selfRegistrationAllowed()) {
+            if (finalRoleNames.isEmpty() && mayEnroll) {
                 userRoleRepository.save(UserRole.builder()
                         .user(user)
                         .serviceName(portal.canonicalServiceName())

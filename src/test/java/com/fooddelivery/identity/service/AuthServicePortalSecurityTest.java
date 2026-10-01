@@ -129,6 +129,54 @@ class AuthServicePortalSecurityTest {
         assertEquals("CustomerApplication", assignment.getValue().getServiceName());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AuthPortal.class, names = {"CUSTOMER", "DELIVERY", "RESTAURANT"})
+    void explicitSignupCreatesOnlyTheSelectedOnboardingRole(AuthPortal portal) {
+        AppUser applicant = activeUser();
+        when(users.findByPhoneNumber(PHONE)).thenReturn(Optional.empty());
+        when(users.save(any(AppUser.class))).thenReturn(applicant);
+        when(roles.findByUserId(applicant.getId())).thenReturn(List.of());
+
+        String token = service.registerWithOtp(PHONE, OTP, portal.name(), "test", "macOS", "Chromium", null);
+
+        assertFalse(token.isBlank());
+        var assignment = org.mockito.ArgumentCaptor.forClass(UserRole.class);
+        verify(roles).save(assignment.capture());
+        assertEquals(portal.role(), assignment.getValue().getRoleName());
+        assertEquals(portal.canonicalServiceName(), assignment.getValue().getServiceName());
+        var claims = io.jsonwebtoken.Jwts.parserBuilder().setSigningKey(
+                (java.security.PublicKey) ReflectionTestUtils.getField(service, "publicKey"))
+                .build().parseClaimsJws(token).getBody();
+        assertEquals(List.of(portal.role().name()), claims.get("roles"));
+    }
+
+    @Test
+    void explicitSignupCannotProvisionAnAdministrator() {
+        var error = assertThrows(ResponseStatusException.class, () ->
+                service.registerWithOtp(PHONE, OTP, "ADMIN", "test", "macOS", "Chromium", null));
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
+        verify(users, never()).save(any());
+        verify(roles, never()).save(any());
+    }
+
+    @Test
+    void signupCannotBypassOtpVerification() {
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerWithOtp(PHONE, "999999", "DELIVERY", "test", "macOS", "Chromium", null));
+        verify(users, never()).save(any());
+        verify(roles, never()).save(any());
+    }
+
+    @Test
+    void signupCannotReactivateAnInactiveAccount() {
+        var inactive = AppUser.builder().id(UUID.randomUUID()).phoneNumber(PHONE).isActive(false).build();
+        when(users.findByPhoneNumber(PHONE)).thenReturn(Optional.of(inactive));
+        var error = assertThrows(ResponseStatusException.class, () ->
+                service.registerWithOtp(PHONE, OTP, "RESTAURANT", "test", "macOS", "Chromium", null));
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
+        verify(roles, never()).save(any());
+    }
+
     private String verifyOtp(String serviceName) {
         return service.verifyOtp(PHONE, OTP, serviceName, "test", "macOS", "Chromium", null);
     }

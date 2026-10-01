@@ -77,6 +77,16 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(token, "Login successful"));
     }
 
+    @PostMapping("/register")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<String>> registerWithOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
+        if (isRateLimited(phoneNumber)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        String token = authService.registerWithOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId);
+        return ResponseEntity.ok(ApiResponse.success(token, "Registration successful"));
+    }
+
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {

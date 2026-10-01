@@ -7,12 +7,13 @@ package com.fooddelivery.identity.service;
 public final class SeededOtpAccountPolicy {
 
     private static final long CUSTOMER_FIRST = 8_000_000_001L;
-    private static final long CUSTOMER_LAST = 8_000_000_500L;
+    private static final long CUSTOMER_LAST = 8_000_000_504L;
     private static final long RESTAURANT_FIRST = 9_000_000_001L;
-    private static final long RESTAURANT_LAST = 9_000_000_010L;
+    private static final long RESTAURANT_LAST = 9_000_000_014L;
     private static final long DELIVERY_FIRST = 7_000_000_001L;
-    private static final long DELIVERY_LAST = 7_000_000_030L;
-    private static final long ADMIN_PHONE = 1_000_000_001L;
+    private static final long DELIVERY_LAST = 7_000_000_034L;
+    private static final long ADMIN_FIRST = 1_000_000_001L;
+    private static final long ADMIN_LAST = 1_000_000_002L;
 
     private SeededOtpAccountPolicy() {
     }
@@ -27,7 +28,7 @@ public final class SeededOtpAccountPolicy {
             case CUSTOMER -> inRange(phone, CUSTOMER_FIRST, CUSTOMER_LAST);
             case RESTAURANT -> inRange(phone, RESTAURANT_FIRST, RESTAURANT_LAST);
             case DELIVERY -> inRange(phone, DELIVERY_FIRST, DELIVERY_LAST);
-            case ADMIN -> phone == ADMIN_PHONE;
+            case ADMIN -> inRange(phone, ADMIN_FIRST, ADMIN_LAST);
         };
     }
 

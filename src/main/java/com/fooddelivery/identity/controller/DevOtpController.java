@@ -44,7 +44,7 @@ public class DevOtpController {
         AuthPortal portal = AuthPortal.fromCallerService(serviceName);
         if (!accessPolicy.allows(phoneNumber, portal)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Dev autofill supports seeded development accounts only");
+                    "Dev autofill supports reserved development accounts only");
         }
 
         String otp = cachePort.get("OTP:" + phoneNumber + ":" + portal.sessionServiceName());

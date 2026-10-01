@@ -11,8 +11,8 @@ import org.springframework.web.server.ResponseStatusException;
  * The server-owned mapping between a public login choice and an assigned application role.
  *
  * <p>{@code X-Calling-Service} is sent by a browser during OTP login. It can select a portal, but
- * it cannot grant that portal's role. Only an existing role assignment is accepted, except for the
- * customer self-registration flow.</p>
+ * it cannot grant a role during ordinary login. Explicit signup can enroll a customer or partner
+ * for onboarding; administrator assignments always require separate provisioning.</p>
  */
 public enum AuthPortal {
     CUSTOMER(RoleName.CUSTOMER, "CustomerApplication", true,

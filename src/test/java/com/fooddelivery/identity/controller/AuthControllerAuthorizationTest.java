@@ -10,10 +10,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 class AuthControllerAuthorizationTest {
 
     @Test
-    void onlyOtpInitiationAndVerificationAreAnonymous() throws Exception {
+    void onlyOtpEntryPointsAreAnonymous() throws Exception {
         assertNull(AuthController.class.getAnnotation(PreAuthorize.class));
         assertAuthorization("permitAll()", "initiateLogin", String.class, String.class);
         assertAuthorization("permitAll()", "verifyOtp", String.class, String.class, String.class,
+                String.class, String.class, String.class, String.class);
+        assertAuthorization("permitAll()", "registerWithOtp", String.class, String.class, String.class,
                 String.class, String.class, String.class, String.class);
         assertAuthorization("isAuthenticated()", "logout", String.class, String.class, String.class);
         assertAuthorization("isAuthenticated()", "getActiveSessions", String.class, String.class);

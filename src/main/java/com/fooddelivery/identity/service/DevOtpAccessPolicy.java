@@ -13,6 +13,7 @@ public final class DevOtpAccessPolicy {
     public static final String AVAILABILITY_HEADER = "X-Dev-OTP-Available";
 
     public boolean allows(String phoneNumber, AuthPortal portal) {
-        return SeededOtpAccountPolicy.allows(phoneNumber, portal);
+        return SeededOtpAccountPolicy.allows(phoneNumber, portal)
+                || RegistrationOtpAccountPolicy.allows(phoneNumber, portal);
     }
 }
