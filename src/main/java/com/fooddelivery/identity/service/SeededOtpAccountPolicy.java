@@ -1,7 +1,7 @@
 package com.fooddelivery.identity.service;
 
 /**
- * The shared, server-owned account boundary for development OTP inspection. This pure policy
+ * The seeded-account boundary for the optional E2E runner and Dev administrator OTP inspection. This pure policy
  * does not register an endpoint or enable either the Dev autofill or the E2E runner facility.
  */
 public final class SeededOtpAccountPolicy {

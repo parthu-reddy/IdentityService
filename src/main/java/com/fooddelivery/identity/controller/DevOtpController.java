@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Dev Autofill Code uses the real, current OTP for an allowlisted development account. It does
+ * Dev Autofill Code uses the real, current OTP for a development login; only administrator numbers are allowlisted. It does
  * not verify the OTP, create a session, provision an account, or assign an application role.
  */
 @RestController
@@ -44,7 +44,7 @@ public class DevOtpController {
         AuthPortal portal = AuthPortal.fromCallerService(serviceName);
         if (!accessPolicy.allows(phoneNumber, portal)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Dev autofill supports reserved development accounts only");
+                    "Dev autofill requires a valid 10-digit number; administrator numbers must be allowlisted");
         }
 
         String otp = cachePort.get("OTP:" + phoneNumber + ":" + portal.sessionServiceName());
