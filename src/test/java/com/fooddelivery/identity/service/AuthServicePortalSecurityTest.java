@@ -51,6 +51,30 @@ class AuthServicePortalSecurityTest {
     }
 
     @Test
+    @org.junit.jupiter.api.Tag("auth-rate-limit")
+    @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "auth.limits.enabled", matches = "true")
+    void defaultInitiateLimitStopsOtpStorageAndNotifications() {
+        when(cache.increment("RATELIMIT:INITIATE:" + PHONE, 10)).thenReturn(11L);
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> service.initiateLogin(PHONE, "CUSTOMER"));
+        assertEquals("Too many login attempts. Please try again later.", error.getMessage());
+        verify(cache, never()).put(anyString(), anyString(), org.mockito.ArgumentMatchers.anyLong());
+        org.mockito.Mockito.verifyNoInteractions(events);
+    }
+
+    @Test
+    @org.junit.jupiter.api.Tag("auth-rate-limit")
+    @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "auth.limits.enabled", matches = "true")
+    void defaultVerifyLimitInvalidatesOtpBeforeUserOrSessionCreation() {
+        when(cache.increment("RATELIMIT:VERIFY:" + PHONE, 5)).thenReturn(6L);
+        var error = assertThrows(IllegalArgumentException.class, () -> verifyOtp("CUSTOMER"));
+        assertEquals("Too many failed attempts. Please request a new OTP.", error.getMessage());
+        verify(cache).delete("OTP:" + PHONE + ":customer");
+        org.mockito.Mockito.verifyNoInteractions(users, roles, events);
+        verify(cache, never()).put(anyString(), anyString(), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
     void adminHeaderCannotCreateAUserOrGrantAdmin() {
         when(users.findByPhoneNumber(PHONE)).thenReturn(Optional.empty());
 
