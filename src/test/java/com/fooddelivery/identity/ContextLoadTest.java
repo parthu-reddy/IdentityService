@@ -47,6 +47,17 @@ class ContextLoadTest {
     @Test
     void contextLoads() {
         assertTrue(context.getBeanDefinitionCount() > 0, "an empty context is not a started one");
+        org.junit.jupiter.api.Assertions.assertEquals(1, context.getBeansOfType(java.time.Clock.class).size());
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.ZoneOffset.UTC, context.getBean(java.time.Clock.class).getZone());
+    }
+
+    @Test
+    void organisationPolicyUsesLocalDatabaseInsteadOfCallingIdentityOverFeign() {
+        var policies=context.getBeansOfType(com.fooddelivery.common.security.organisation.OrganisationAccessPolicy.class);
+        org.junit.jupiter.api.Assertions.assertEquals(1,policies.size());
+        org.junit.jupiter.api.Assertions.assertInstanceOf(
+            com.fooddelivery.identity.organisation.service.LocalOrganisationAccessPolicy.class,
+            context.getBean("organisationAccessPolicy"));
     }
 
     @Test

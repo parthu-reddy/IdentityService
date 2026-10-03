@@ -91,12 +91,17 @@ public class OpenApiGenerationTest {
     @org.springframework.boot.test.mock.mockito.MockBean
     private com.fooddelivery.identity.service.AuthService authService;
 
+    @MockBean private com.fooddelivery.common.audit.AuditReader auditReader;
+    @MockBean private com.fooddelivery.identity.organisation.service.OrganisationService organisationService;
+    @MockBean private com.fooddelivery.identity.organisation.service.OrganisationInvitationService organisationInvitationService;
+    @MockBean private com.fooddelivery.identity.organisation.service.LocalOrganisationAccessPolicy localOrganisationAccessPolicy;
+
     @org.springframework.context.annotation.Configuration
     // Relabels structured responses from */* to application/json. Without it every
     // generated Zod response validator degrades to z.void(); the scoped scan below
     // does not reach com.fooddelivery.common.config.
     @org.springframework.context.annotation.Import({com.fooddelivery.common.config.OpenApiJsonMediaTypeCustomizer.class, com.fooddelivery.common.config.OpenApiPaginationRequiredCustomizer.class})
-    @org.springframework.context.annotation.ComponentScan(basePackages = {"com.fooddelivery.identity.controller"})
+    @org.springframework.context.annotation.ComponentScan(basePackages = {"com.fooddelivery.identity.controller", "com.fooddelivery.identity.organisation.controller"})
     @org.springframework.boot.autoconfigure.EnableAutoConfiguration(excludeName = {"org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration", "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration", "org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration", "org.springframework.boot.actuate.autoconfigure.security.reactive.ManagementReactiveSecurityAutoConfiguration", "org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration"})
     static class TestApp {
     }

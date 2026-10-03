@@ -139,7 +139,12 @@
             <version>2.2.224</version>
             <scope>test</scope>
         </dependency>
-    <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.3.0</version><scope>test</scope></dependency></dependencies>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.3.0</version><scope>test</scope></dependency></dependencies>
     <dependencyManagement>
         <dependencies>
         <dependency>
@@ -221,6 +226,10 @@
                 <configuration>
                     <testFramework>JUNIT5</testFramework>
                     <baseClassForTests>com.fooddelivery.identity.ContractTestBase</baseClassForTests>
+                    <baseClassMappings>
+                        <baseClassMapping><contractPackageRegex>.*messaging.*</contractPackageRegex><baseClassFQN>com.fooddelivery.identity.contract.OrganisationMessagingBase</baseClassFQN></baseClassMapping>
+                        <baseClassMapping><contractPackageRegex>.*http.*</contractPackageRegex><baseClassFQN>com.fooddelivery.identity.contract.OrganisationHttpBase</baseClassFQN></baseClassMapping>
+                    </baseClassMappings>
                 </configuration>
             </plugin>
         </plugins>
