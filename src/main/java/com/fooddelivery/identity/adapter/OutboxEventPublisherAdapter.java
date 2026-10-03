@@ -26,14 +26,14 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
             OutboxEventEntity outboxEvent = OutboxEventEntity.builder()
                 .id(UUID.randomUUID())
                 .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
-                .aggregateId(recipientPhoneNumber)
+                .aggregateId(event.getEventId())
                 .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
                 .payload(objectMapper.writeValueAsString(event))
                 .createdAt(java.time.Instant.now())
                 .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
                 .build();
             outboxEventRepository.save(outboxEvent);
-            log.info("Saved NotificationRequestEvent to Outbox for phone: {}", recipientPhoneNumber);
+            log.info("Saved signup notification to outbox eventId={}", event.getEventId());
         } catch (Exception e) {
             log.error("Failed to serialize NotificationRequestEvent for outbox", e);
             throw new RuntimeException("Failed to publish notification event via Outbox", e);
