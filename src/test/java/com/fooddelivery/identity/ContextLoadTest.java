@@ -66,4 +66,16 @@ class ContextLoadTest {
         assertTrue(context.getBeansOfType(
                 com.fooddelivery.identity.service.E2eRunnerSecretVerifier.class).isEmpty());
     }
+
+    @Test
+    void organisationOutboxPublisherIsActuallyScheduled() {
+        var schedulers=context.getBeansOfType(org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class);
+        assertFalse(schedulers.isEmpty(), "The outbox bean alone does not publish; scheduling must be enabled");
+        assertTrue(schedulers.values().stream().flatMap(s -> s.getScheduledTasks().stream())
+                .map(t -> t.getTask().getRunnable())
+                .anyMatch(r -> r instanceof org.springframework.scheduling.support.ScheduledMethodRunnable method
+                        && method.getMethod().getDeclaringClass()==com.fooddelivery.common.outbox.service.OutboxProcessor.class
+                        && method.getMethod().getName().equals("processOutboxEvents")),
+                "The organisation outbox publisher must be scheduled in the real Identity context");
+    }
 }

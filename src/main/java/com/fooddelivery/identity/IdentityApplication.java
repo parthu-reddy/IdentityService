@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 )
 @org.springframework.boot.autoconfigure.domain.EntityScan(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
 @org.springframework.data.jpa.repository.config.EnableJpaRepositories(basePackages = {"com.fooddelivery.identity", "com.fooddelivery.common"})
+@org.springframework.scheduling.annotation.EnableScheduling
 public class IdentityApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(IdentityApplication.class, args);

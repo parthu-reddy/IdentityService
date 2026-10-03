@@ -5,12 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+/**
+ * Guards the parked runner-secret /internal/e2e/auth/otp harness, not browser Dev Autofill Code.
+ * DevOtpAccountPolicyTest proves arbitrary valid non-admin numbers work in the browser flow.
+ */
 class E2eSeededAccountAllowlistTest {
 
     private final E2eSeededAccountAllowlist allowlist = new E2eSeededAccountAllowlist();
 
     @Test
-    void acceptsOnlyTheConfiguredSeedRangesForTheirPortal() {
+    void runnerSecretHarnessAcceptsOnlyTheConfiguredSeedRangesForTheirPortal() {
         assertTrue(allowlist.allows("8000000001", AuthPortal.CUSTOMER));
         assertTrue(allowlist.allows("8000000500", AuthPortal.CUSTOMER));
         assertTrue(allowlist.allows("9000000001", AuthPortal.RESTAURANT));
