@@ -7,8 +7,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Explicit integration run against an isolated PostgreSQL instance; never point at Dev. */
-class OrganisationPostgresMigrationIT {
-    @Test void migrationsAreRepeatableAndDatabaseEnforcesOwnershipInvitationsAndAppendOnlyAudit() throws Exception {
+class OrganisationPostgresSchemaIT {
+    @Test void freshSchemaIsRepeatableAndDatabaseEnforcesOwnershipInvitationsAndAppendOnlyAudit() throws Exception {
         String url=System.getProperty("bp.pg.url");
         assertNotNull(url,"Supply -Dbp.pg.url for an isolated PostgreSQL test database");
         String username=System.getProperty("bp.pg.user","bp_o1");
@@ -17,13 +17,13 @@ class OrganisationPostgresMigrationIT {
             try {
                 var flyway=Flyway.configure().dataSource(url,username,"").schemas(schema).defaultSchema(schema)
                     .locations("classpath:db/migration").load();
-                assertEquals(6,flyway.migrate().migrationsExecuted);
+                assertEquals(2,flyway.migrate().migrationsExecuted);
                 assertEquals(0,flyway.migrate().migrationsExecuted);
                 flyway.validate();
                 sql.execute("set search_path to "+schema);
                 UUID first=UUID.randomUUID(),second=UUID.randomUUID(),org=UUID.randomUUID(),audit=UUID.randomUUID();
                 sql.execute("insert into users(id,phone_number) values ('"+first+"','8999000301'),('"+second+"','8999000302')");
-                sql.execute("insert into organisations(id,display_name,status,created_by,created_at,updated_at) values ('"+org+"','Migration test','ACTIVE','"+first+"',now(),now())");
+                sql.execute("insert into organisations(id,display_name,status,created_by,created_at,updated_at) values ('"+org+"','Fresh schema test','ACTIVE','"+first+"',now(),now())");
                 sql.execute("insert into organisation_members(id,organisation_id,user_id,role,status,created_at,updated_at) values ('"+UUID.randomUUID()+"','"+org+"','"+first+"','OWNER','ACTIVE',now(),now())");
                 var duplicateOwner=assertThrows(SQLException.class,() -> sql.execute("insert into organisation_members(id,organisation_id,user_id,role,status,created_at,updated_at) values ('"+UUID.randomUUID()+"','"+org+"','"+second+"','OWNER','ACTIVE',now(),now())"));
                 assertEquals("23505",duplicateOwner.getSQLState());assertTrue(duplicateOwner.getMessage().contains("uq_organisation_single_owner"));

@@ -30,6 +30,13 @@ public class LocalOrganisationAccessPolicy implements OrganisationAccessPolicy {
         metrics.counter("organisation.access.decisions","permission",permission==null?"INVALID":permission.name(),"result",allowed?"allow":"deny").increment();
         return allowed;
     }
+    @Override public boolean canUser(UUID user,UUID org,OrganisationPermission permission) {
+        if(user==null || org==null || permission==null) { return false; }
+        var status=organisations.findById(org).map(o -> o.getStatus()).orElse(null);
+        return (status==OrganisationStatus.ACTIVE || (status==OrganisationStatus.SUSPENDED && permission==OrganisationPermission.ORG_VIEW))
+                && members.findByOrganisationIdAndUserId(org,user)
+                    .filter(m -> m.getStatus()==MembershipStatus.ACTIVE && m.getRole()!=null && m.getRole().grants(permission)).isPresent();
+    }
     @Override public Optional<OrganisationRole> roleOf(Authentication auth,UUID org) {
         UUID user=person(auth);if(user==null||org==null){return Optional.empty();}
         return members.findByOrganisationIdAndUserId(org,user).filter(m -> m.getStatus()==MembershipStatus.ACTIVE)

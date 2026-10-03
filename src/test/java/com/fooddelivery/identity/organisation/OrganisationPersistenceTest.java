@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * H2 exercises Hibernate and real transaction boundaries, including JSON audit persistence.
  * Hibernate-generated DDL does not reproduce PostgreSQL partial unique indexes or append-only
- * triggers. Those guarantees require the separate PostgreSQL migration test; this class proves
+ * triggers. Those guarantees require the separate PostgreSQL fresh-schema test; this class proves
  * ownership through the real service and never claims PostgreSQL schema coverage.
  */
 @DataJpaTest(properties={"spring.cloud.config.enabled=false","spring.flyway.enabled=false",

@@ -31,5 +31,13 @@ class LocalOrganisationAccessPolicyTest {
         for(var p:OrganisationPermission.values()){assertTrue(policy.can(auth("ROLE_SERVICE"),org,p));assertEquals(p.readOnly(),policy.can(auth("ROLE_ADMIN"),org,p));}
         verifyNoInteractions(members,organisations);
     }
+    @Test void internalChecksUseTheNamedUserAndImmediatelySeeRevocation(){
+        assertTrue(policy.canUser(user,org,OrganisationPermission.ORDERS_OPERATE));
+        assertFalse(policy.canUser(user,org,OrganisationPermission.EARNINGS_VIEW));
+        assertFalse(policy.canUser(UUID.randomUUID(),org,OrganisationPermission.ORDERS_OPERATE));
+        membership.setStatus(MembershipStatus.REMOVED);
+        assertFalse(policy.canUser(user,org,OrganisationPermission.ORDERS_OPERATE));
+        assertFalse(policy.canUser(null,org,OrganisationPermission.ORG_VIEW));
+    }
     @Test void internalMembershipIsNotFoundAfterRemoval(){membership.setStatus(MembershipStatus.REMOVED);var ex=assertThrows(org.springframework.web.server.ResponseStatusException.class,()->policy.membership(org,user));assertEquals(404,ex.getStatusCode().value());}
 }
