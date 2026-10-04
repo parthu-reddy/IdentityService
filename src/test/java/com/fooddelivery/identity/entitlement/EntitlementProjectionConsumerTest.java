@@ -8,6 +8,7 @@ import com.fooddelivery.identity.entitlement.messaging.*;
 import com.fooddelivery.identity.entitlement.service.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.*;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -17,6 +18,8 @@ import static org.mockito.Mockito.*;
 
 /** Actual listener -> typed binder -> native claim -> real H2 projection transaction. */
 @Transactional(propagation=Propagation.NOT_SUPPORTED)
+// These transactions deliberately commit. Do not share their data with rollback-only role tests.
+@TestPropertySource(properties="spring.datasource.url=jdbc:h2:mem:o4_projection_consumer;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
 class EntitlementProjectionConsumerTest extends EntitlementH2Fixture {
     @Autowired EntitlementEventProcessor processor; @Autowired EntitlementProjectionService projection;
     @Autowired IIdempotencyKeyRepository claims; @Autowired PlatformTransactionManager manager; @Autowired ObjectMapper mapper;
