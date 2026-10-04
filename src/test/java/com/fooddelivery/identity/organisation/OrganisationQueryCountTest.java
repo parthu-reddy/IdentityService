@@ -6,6 +6,8 @@ import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
 import com.fooddelivery.identity.organisation.service.*;
 import com.fooddelivery.identity.repository.UserRepository;
+import com.fooddelivery.identity.entitlement.repository.BusinessEntitlementRepository;
+import com.fooddelivery.identity.entitlement.entity.BusinessEntitlement;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ class OrganisationQueryCountTest {
     @Autowired OrganisationRepository orgs;
     @Autowired OrganisationMemberRepository members;
     @Autowired UserRepository users;
+    @Autowired BusinessEntitlementRepository businesses;
     @Autowired EntityManagerFactory factory;
     @Autowired PlatformTransactionManager manager;
     @MockBean OrganisationRateLimits limits;
@@ -40,6 +43,7 @@ class OrganisationQueryCountTest {
     UUID addUser(int n){return users.saveAndFlush(AppUser.builder().phoneNumber(String.format("8998%06d",n)).isActive(true).build()).getId();}
     Organisation addOrg(UUID owner){return orgs.saveAndFlush(Organisation.builder().id(UUID.randomUUID()).displayName("Queries").status(OrganisationStatus.ACTIVE).createdBy(owner).createdAt(now).updatedAt(now).build());}
     void addMember(UUID org,UUID user,OrganisationRole role){members.saveAndFlush(OrganisationMember.builder().id(UUID.randomUUID()).organisationId(org).userId(user).role(role).status(MembershipStatus.ACTIVE).addedBy(user).createdAt(now).updatedAt(now).build());}
+    void addBusiness(UUID org){businesses.saveAndFlush(BusinessEntitlement.builder().businessType(BusinessType.RESTAURANT).businessId(UUID.randomUUID()).organisationId(org).applicationStatus(ApplicationStatus.APPROVED).applicationVersion(1).updatedAt(now).build());}
     long queries(Runnable work){var stats=factory.unwrap(SessionFactory.class).getStatistics();stats.clear();work.run();return stats.getPrepareStatementCount();}
     @Test void oneAndFiftyMembersCostTheSameNumberOfStatementsAndStaffPhonesAreMasked(){
         UUID actor=addUser(1);var org=addOrg(actor);addMember(org.getId(),actor,OrganisationRole.STAFF);
@@ -51,10 +55,10 @@ class OrganisationQueryCountTest {
     }
     @Test void oneAndFiftyOrganisationsBatchCallerRolesAndDoNotCountPages(){
         UUID actor=addUser(101);var auth=new UsernamePasswordAuthenticationToken(actor.toString(),null,List.of());
-        var first=addOrg(actor);addMember(first.getId(),actor,OrganisationRole.OWNER);
-        long one=queries(() -> assertEquals(1,service.list(auth,0,100).getNumberOfElements()));
-        new TransactionTemplate(manager).execute(s -> {for(int i=1;i<50;i++){var org=addOrg(actor);addMember(org.getId(),actor,OrganisationRole.OWNER);}return null;});
-        long fifty=queries(() -> {var rows=service.list(auth,0,100);assertEquals(50,rows.getNumberOfElements());assertTrue(rows.stream().allMatch(o -> o.myRole()==OrganisationRole.OWNER));});
-        assertTrue(one>0);assertEquals(one,fifty);assertTrue(fifty<=2,"Organisation slice plus one batched role query only");
+        var first=addOrg(actor);addMember(first.getId(),actor,OrganisationRole.OWNER);addBusiness(first.getId());
+        long one=queries(() -> {var row=service.list(auth,0,100).getContent().get(0);assertEquals(1,row.businesses().size());});
+        new TransactionTemplate(manager).execute(s -> {for(int i=1;i<50;i++){var org=addOrg(actor);addMember(org.getId(),actor,OrganisationRole.OWNER);addBusiness(org.getId());}return null;});
+        long fifty=queries(() -> {var rows=service.list(auth,0,100);assertEquals(50,rows.getNumberOfElements());assertTrue(rows.stream().allMatch(o -> o.myRole()==OrganisationRole.OWNER && o.businesses().size()==1));});
+        assertTrue(one>0);assertEquals(one,fifty);assertTrue(fifty<=3,"Organisation slice, batched roles and batched business projections only");
     }
 }

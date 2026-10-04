@@ -2,7 +2,7 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.port.CachePort;
-import com.fooddelivery.identity.service.AuthPortal;
+import com.fooddelivery.identity.service.OtpPurpose;
 import com.fooddelivery.identity.service.E2eRunnerSecretVerifier;
 import com.fooddelivery.identity.service.E2eSeededAccountAllowlist;
 import java.util.List;
@@ -37,18 +37,17 @@ public class E2eOtpController {
             @RequestHeader(value = E2eRunnerSecretVerifier.HEADER_NAME, required = false)
                     List<String> runnerSecrets,
             @RequestParam @jakarta.validation.constraints.Pattern(regexp = "\\d{10}") String phoneNumber,
-            @RequestParam(defaultValue = "CUSTOMER") String serviceName) {
+            @RequestParam(defaultValue = "LOGIN") OtpPurpose purpose) {
         if (!runnerSecretVerifier.matches(runnerSecrets)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "E2E runner credentials are required");
         }
 
-        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
-        if (!seededAccountAllowlist.allows(phoneNumber, portal)) {
+        if (!seededAccountAllowlist.allows(phoneNumber, purpose)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "This endpoint supports seeded E2E accounts only");
         }
 
-        String cacheKey = "OTP:" + phoneNumber + ":" + portal.sessionServiceName();
+        String cacheKey = "OTP:" + phoneNumber + ":" + purpose.name();
         String otp = cachePort.get(cacheKey);
         if (otp != null) {
             return ResponseEntity.ok(ApiResponse.success(otp, "OTP retrieved successfully"));

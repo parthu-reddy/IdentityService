@@ -26,11 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 // written for narrow @SpringBootTest(classes = ...) contract tests that never build that controller.
 // Supplied here rather than added to the shared profile, so the contract tests keep the exact
 // configuration they were verified against.
-@SpringBootTest(properties = "jwt.expiration=3600000")
+@SpringBootTest(properties = {"jwt.expiration=3600000","spring.kafka.listener.auto-startup=false"})
 // The OTP inspection endpoint is strictly e2e-profiled and the unsafe MCP tool bean is removed.
 // Keep this production-like context free of either test-only capability.
 @ActiveProfiles("contract-test")
 class ContextLoadTest {
+    @org.springframework.boot.test.mock.mockito.MockBean org.springframework.kafka.core.KafkaAdmin kafkaAdmin;
 
     // The contract-test profile excludes Redis auto-configuration, so nothing supplies these.
     // Mocked individually rather than by excluding more auto-configuration: the point of this test is

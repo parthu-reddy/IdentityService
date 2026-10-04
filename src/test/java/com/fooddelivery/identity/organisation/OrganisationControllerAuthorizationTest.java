@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes={OrganisationController.class,OrganisationService.class,OrganisationInvitationService.class,
     CommonSecurityConfig.class,com.fooddelivery.common.exception.GlobalExceptionHandler.class,OrganisationExceptionHandler.class})
 class OrganisationControllerAuthorizationTest {
+    @MockBean com.fooddelivery.identity.entitlement.repository.BusinessEntitlementRepository businesses;
+    @MockBean com.fooddelivery.identity.entitlement.service.EntitlementVersionPublisher versions;
     @Autowired MockMvc mvc;
     @MockBean OrganisationRepository orgs;@MockBean OrganisationMemberRepository members;@MockBean OrganisationInvitationRepository invitations;
     @MockBean com.fooddelivery.identity.repository.UserRepository users;

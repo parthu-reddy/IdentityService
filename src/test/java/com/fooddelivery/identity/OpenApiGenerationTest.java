@@ -95,13 +95,14 @@ public class OpenApiGenerationTest {
     @MockBean private com.fooddelivery.identity.organisation.service.OrganisationService organisationService;
     @MockBean private com.fooddelivery.identity.organisation.service.OrganisationInvitationService organisationInvitationService;
     @MockBean private com.fooddelivery.identity.organisation.service.LocalOrganisationAccessPolicy localOrganisationAccessPolicy;
+    @MockBean private com.fooddelivery.identity.entitlement.service.PortalService portalService;
 
     @org.springframework.context.annotation.Configuration
     // Relabels structured responses from */* to application/json. Without it every
     // generated Zod response validator degrades to z.void(); the scoped scan below
     // does not reach com.fooddelivery.common.config.
     @org.springframework.context.annotation.Import({com.fooddelivery.common.config.OpenApiJsonMediaTypeCustomizer.class, com.fooddelivery.common.config.OpenApiPaginationRequiredCustomizer.class})
-    @org.springframework.context.annotation.ComponentScan(basePackages = {"com.fooddelivery.identity.controller", "com.fooddelivery.identity.organisation.controller"})
+    @org.springframework.context.annotation.ComponentScan(basePackages = {"com.fooddelivery.identity.controller", "com.fooddelivery.identity.organisation.controller", "com.fooddelivery.identity.entitlement.controller"})
     @org.springframework.boot.autoconfigure.EnableAutoConfiguration(excludeName = {"org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration", "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration", "org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration", "org.springframework.boot.actuate.autoconfigure.security.reactive.ManagementReactiveSecurityAutoConfiguration", "org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration"})
     static class TestApp {
     }
@@ -154,6 +155,17 @@ public class OpenApiGenerationTest {
         }
 
         if (openApiJson != null && !openApiJson.isEmpty()) {
+            var spec = new com.fasterxml.jackson.databind.ObjectMapper().readTree(openApiJson);
+            var paths = spec.path("paths");
+            org.junit.jupiter.api.Assertions.assertTrue(paths.has("/api/v1/auth/otp"));
+            org.junit.jupiter.api.Assertions.assertTrue(paths.has("/api/v1/auth/session"));
+            org.junit.jupiter.api.Assertions.assertTrue(paths.has("/api/v1/auth/admin-session"));
+            org.junit.jupiter.api.Assertions.assertTrue(paths.has("/api/v1/users/me/portals"));
+            paths.fieldNames().forEachRemaining(path -> org.junit.jupiter.api.Assertions.assertFalse(
+                    path.contains("/internal/auth") || path.endsWith("/register"), path));
+            var staffRequest = spec.path("components").path("schemas").path("RoleRequestDTO").path("properties");
+            org.junit.jupiter.api.Assertions.assertEquals("ADMIN", staffRequest.path("roleName").path("pattern").asText());
+            org.junit.jupiter.api.Assertions.assertFalse(staffRequest.has("serviceName"));
             Path path = Paths.get("target/openapi.json");
             if (path.getParent() != null) Files.createDirectories(path.getParent());
             Files.write(path, openApiJson.getBytes(StandardCharsets.UTF_8));

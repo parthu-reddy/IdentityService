@@ -38,6 +38,11 @@ public class AppUser {
     @Column(name = "created_at")
     private Instant createdAt;
     
+    // Changed only by the atomic repository bump; ordinary dirty-user updates cannot overwrite it.
+    @Column(name = "entitlements_version", nullable = false, updatable = false)
+    private long entitlementsVersion;
+
+    @lombok.Builder.Default
     @Column(name = "is_active")
     private boolean isActive = true;
 

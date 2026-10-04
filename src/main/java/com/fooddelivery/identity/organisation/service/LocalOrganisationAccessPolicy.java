@@ -37,6 +37,7 @@ public class LocalOrganisationAccessPolicy implements OrganisationAccessPolicy {
                 && members.findByOrganisationIdAndUserId(org,user)
                     .filter(m -> m.getStatus()==MembershipStatus.ACTIVE && m.getRole()!=null && m.getRole().grants(permission)).isPresent();
     }
+    @Override public boolean canUserStrict(UUID user,UUID org,OrganisationPermission permission) { return canUser(user,org,permission); }
     @Override public Optional<OrganisationRole> roleOf(Authentication auth,UUID org) {
         UUID user=person(auth);if(user==null||org==null){return Optional.empty();}
         return members.findByOrganisationIdAndUserId(org,user).filter(m -> m.getStatus()==MembershipStatus.ACTIVE)

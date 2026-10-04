@@ -10,6 +10,8 @@ import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
 import com.fooddelivery.identity.organisation.service.*;
 import com.fooddelivery.identity.repository.UserRepository;
+import com.fooddelivery.identity.entitlement.repository.BusinessEntitlementRepository;
+import com.fooddelivery.identity.entitlement.service.EntitlementVersionPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +50,7 @@ public abstract class OrganisationMessagingBase {
         when(orgs.saveAndFlush(any())).thenAnswer(i -> {Organisation o=i.getArgument(0);o.setVersion(0L);return o;});
         when(members.saveAndFlush(any())).thenAnswer(i -> {OrganisationMember m=i.getArgument(0);m.setVersion(0L);return m;});
         when(outbox.save(any())).thenAnswer(i -> {OutboxEventEntity e=i.getArgument(0);emitted.add(e);return e;});
-        var service=new OrganisationService(orgs,members,invitations,users,outbox,mapper,mock(AuditTrail.class),mock(OrganisationRateLimits.class),Clock.fixed(Instant.parse("2026-10-03T10:00:00Z"),ZoneOffset.UTC),new SimpleMeterRegistry());
+        var service=new OrganisationService(orgs,members,invitations,users,outbox,mapper,mock(AuditTrail.class),mock(OrganisationRateLimits.class),Clock.fixed(Instant.parse("2026-10-03T10:00:00Z"),ZoneOffset.UTC),new SimpleMeterRegistry(),mock(BusinessEntitlementRepository.class),mock(EntitlementVersionPublisher.class));
         service.create(new UsernamePasswordAuthenticationToken(actor.toString(),null,List.of()),"Contract organisation");
         var selected=emitted.stream().filter(e -> e.getEventType()==expected).toList();assertEquals(1,selected.size());
         when(outbox.findTop100ByStatusInOrderByCreatedAtAsc(anyList())).thenReturn(selected);

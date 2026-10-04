@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "e2e.otp", name = "enabled", havingValue = "true")
 public final class E2eSeededAccountAllowlist {
 
-    public boolean allows(String phoneNumber, AuthPortal portal) {
-        return SeededOtpAccountPolicy.allows(phoneNumber, portal);
+    public boolean allows(String phoneNumber, OtpPurpose purpose) {
+        return SeededOtpAccountPolicy.allows(phoneNumber, purpose);
     }
 }

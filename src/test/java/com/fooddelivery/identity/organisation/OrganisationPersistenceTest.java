@@ -8,6 +8,7 @@ import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
 import com.fooddelivery.identity.organisation.service.*;
 import com.fooddelivery.identity.repository.UserRepository;
+import com.fooddelivery.identity.port.CachePort;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * H2 exercises Hibernate and real transaction boundaries, including JSON audit persistence.
@@ -47,6 +49,7 @@ class OrganisationPersistenceTest {
     @Autowired AuditReader audit;
     @Autowired PlatformTransactionManager manager;
     @Autowired EntityManager em;
+    @Autowired CachePort cache;
     @MockBean OrganisationRateLimits limits;
     final Instant now=Instant.parse("2026-10-03T10:00:00Z");
     Authentication auth(UUID id){return new UsernamePasswordAuthenticationToken(id.toString(),null,List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER")));}
@@ -66,6 +69,7 @@ class OrganisationPersistenceTest {
         assertEquals(1,history.getNumberOfElements());
         assertEquals(AuditAction.ORGANISATION_CREATED,history.getContent().get(0).getAction());
         assertEquals(Map.of(),history.getContent().get(0).getDetails());
+        assertEquals(1,users.findById(actor).orElseThrow().getEntitlementsVersion());
     }
     @Test void rollbackLeavesNoOrganisationMemberOutboxOrAudit(){
         UUID actor=user("8999000102");long orgBefore=orgs.count(),memberBefore=members.count(),outboxBefore=outbox.count(),auditBefore=auditCount();
@@ -75,6 +79,7 @@ class OrganisationPersistenceTest {
         }));
         assertEquals(orgBefore,orgs.count());assertEquals(memberBefore,members.count());
         assertEquals(outboxBefore,outbox.count());assertEquals(auditBefore,auditCount());
+        assertEquals(0,users.findById(actor).orElseThrow().getEntitlementsVersion());
     }
     @Test void transferCommitsExactlyOneOwnerAndAuditJsonIdentifier(){
         UUID owner=user("8999000103"),next=user("8999000104");
@@ -86,6 +91,8 @@ class OrganisationPersistenceTest {
         assertEquals(1,rows.stream().filter(m -> m.getRole()==OrganisationRole.OWNER).count());
         assertEquals(OrganisationRole.OWNER,members.findByOrganisationIdAndUserId(created.id(),next).orElseThrow().getRole());
         assertEquals(OrganisationRole.ADMIN,members.findByOrganisationIdAndUserId(created.id(),owner).orElseThrow().getRole());
+        assertEquals(2,users.findById(owner).orElseThrow().getEntitlementsVersion());
+        assertEquals(2,users.findById(next).orElseThrow().getEntitlementsVersion());
         var history=audit.history("ORGANISATION",created.id(),0,20);
         var transfer=history.stream().filter(a -> a.getAction()==AuditAction.OWNERSHIP_TRANSFERRED).findFirst().orElseThrow();
         assertEquals(next.toString(),transfer.getDetails().get("newOwnerId").toString());
@@ -98,5 +105,37 @@ class OrganisationPersistenceTest {
         assertThrows(InvitationExpiredException.class,() -> invitations.respond(auth(invitee),invite.id(),true));
         assertEquals(InvitationStatus.EXPIRED,invitationRows.findById(invite.id()).orElseThrow().getStatus());
         assertTrue(members.findByOrganisationIdAndUserId(org.id(),invitee).isEmpty());
+    }
+    @Test void removalInvalidatesTheRemovedPersonAndStatusChangesOnlyInvalidateActiveMembers(){
+        UUID owner=user("8999000107"),invitee=user("8999000108");
+        var org=service.create(auth(owner),"Versioned membership");
+        var invite=invitations.invite(auth(owner),org.id(),"8999000108",OrganisationRole.STAFF);
+        invitations.respond(auth(invitee),invite.id(),true);
+        clearInvocations(cache);
+        service.remove(auth(owner),org.id(),invitee);
+        assertEquals(2,users.findById(invitee).orElseThrow().getEntitlementsVersion());
+        verify(cache).putVersions(Map.of("ENTITLEMENTS_VERSION:"+invitee,"2"),Duration.ofDays(2));
+        var admin=new UsernamePasswordAuthenticationToken(owner.toString(),null,List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        service.setStatus(admin,org.id(),OrganisationStatus.SUSPENDED,"Safety review required");
+        assertEquals(2,users.findById(owner).orElseThrow().getEntitlementsVersion());
+        assertEquals(2,users.findById(invitee).orElseThrow().getEntitlementsVersion());
+        service.setStatus(admin,org.id(),OrganisationStatus.ACTIVE,"Safety review completed");
+        assertEquals(3,users.findById(owner).orElseThrow().getEntitlementsVersion());
+        assertEquals(2,users.findById(invitee).orElseThrow().getEntitlementsVersion());
+        verify(cache).putVersions(Map.of("ENTITLEMENTS_VERSION:"+owner,"2"),Duration.ofDays(2));
+        verify(cache).putVersions(Map.of("ENTITLEMENTS_VERSION:"+owner,"3"),Duration.ofDays(2));
+        verifyNoMoreInteractions(cache);
+    }
+    @Test void rolledBackSuspensionLeavesStatusVersionAndCacheUnchanged(){
+        UUID owner=user("8999000109");var org=service.create(auth(owner),"Rollback status");
+        var admin=new UsernamePasswordAuthenticationToken(owner.toString(),null,List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        clearInvocations(cache);
+        assertThrows(IllegalStateException.class,()->new TransactionTemplate(manager).execute(s->{
+            service.setStatus(admin,org.id(),OrganisationStatus.SUSPENDED,"Safety review required");
+            em.flush();throw new IllegalStateException("Abort suspension");
+        }));
+        assertEquals(OrganisationStatus.ACTIVE,orgs.findById(org.id()).orElseThrow().getStatus());
+        assertEquals(1,users.findById(owner).orElseThrow().getEntitlementsVersion());
+        verifyNoInteractions(cache);
     }
 }

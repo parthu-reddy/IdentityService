@@ -4,14 +4,11 @@ Contract.make {
     description("Should initiate login via Identity Service")
     request {
         method 'POST'
-        urlPath('/api/v1/internal/auth/initiate') {
-            queryParameters {
-                parameter 'phoneNumber': '+1234567890'
-            }
-        }
+        urlPath('/api/v1/auth/otp')
         headers {
-            header('X-Calling-Service': 'gateway')
+            contentType(applicationJson())
         }
+        body(phoneNumber: '8000000001')
     }
     response {
         status OK()
@@ -21,7 +18,7 @@ Contract.make {
         body([
             success: true,
             data: null,
-            message: "OTP sent successfully"
+            message: "Code sent"
         ])
     }
 }

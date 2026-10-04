@@ -20,7 +20,11 @@ public class SessionInfo {
     @Schema(requiredMode = RequiredMode.REQUIRED)
     private long lastActive;
     @NotNull
-    private String serviceName;
+    private com.fooddelivery.identity.service.OtpPurpose purpose;
+    @NotNull
+    private java.time.Instant createdAt;
+    @NotNull
+    private java.time.Instant absoluteExpiresAt;
 
 
 }

@@ -9,6 +9,7 @@ import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.port.CachePort;
 import com.fooddelivery.identity.service.E2eRunnerSecretVerifier;
 import com.fooddelivery.identity.service.E2eSeededAccountAllowlist;
+import com.fooddelivery.identity.service.OtpPurpose;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class E2eOtpControllerTest {
     @Test
     void directOtpLookupRejectsAnAbsentRunnerSecret() {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> controller.getOtp(null, "8000000001", "CUSTOMER"));
+                () -> controller.getOtp(null, "8000000001", OtpPurpose.LOGIN));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
     }
@@ -38,7 +39,7 @@ class E2eOtpControllerTest {
     @Test
     void directOtpLookupRejectsAnIncorrectRunnerSecret() {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> controller.getOtp(List.of("wrong-secret"), "8000000001", "CUSTOMER"));
+                () -> controller.getOtp(List.of("wrong-secret"), "8000000001", OtpPurpose.LOGIN));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
     }
@@ -47,27 +48,27 @@ class E2eOtpControllerTest {
     void directOtpLookupRejectsDuplicatedRunnerSecretHeaders() {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> controller.getOtp(List.of("runner-secret", "runner-secret"),
-                        "8000000001", "CUSTOMER"));
+                        "8000000001", OtpPurpose.LOGIN));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
     }
 
     @Test
-    void directOtpLookupRejectsASecretForAnUnseededOrWrongPortalAccount() {
+    void directOtpLookupRejectsASecretForAnUnseededOrWrongPurposeAccount() {
         ResponseStatusException unseeded = assertThrows(ResponseStatusException.class,
-                () -> controller.getOtp(List.of("runner-secret"), "8000000505", "CUSTOMER"));
+                () -> controller.getOtp(List.of("runner-secret"), "8000000505", OtpPurpose.LOGIN));
         ResponseStatusException wrongPortal = assertThrows(ResponseStatusException.class,
-                () -> controller.getOtp(List.of("runner-secret"), "8000000001", "ADMIN"));
+                () -> controller.getOtp(List.of("runner-secret"), "8000000001", OtpPurpose.ADMIN));
 
         assertEquals(HttpStatus.FORBIDDEN, unseeded.getStatusCode());
         assertEquals(HttpStatus.FORBIDDEN, wrongPortal.getStatusCode());
     }
 
     @Test
-    void directOtpLookupReturnsOnlyTheRequestedSeededPortalOtp() {
-        when(cachePort.get("OTP:8000000001:customer")).thenReturn("123456");
+    void directOtpLookupReturnsOnlyTheRequestedSeededPurposeOtp() {
+        when(cachePort.get("OTP:8000000001:LOGIN")).thenReturn("123456");
 
-        ApiResponse<String> response = controller.getOtp(List.of("runner-secret"), "8000000001", "CUSTOMER")
+        ApiResponse<String> response = controller.getOtp(List.of("runner-secret"), "8000000001", OtpPurpose.LOGIN)
                 .getBody();
 
         assertEquals("123456", response.getData());

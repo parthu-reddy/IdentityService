@@ -4,16 +4,16 @@ CREATE TABLE users (
     name VARCHAR(255),
     email VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    entitlements_version BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE user_roles (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    service_name VARCHAR(50) NOT NULL,
-    role_name VARCHAR(50) NOT NULL,
+    role_name VARCHAR(50) NOT NULL CHECK (role_name = 'ADMIN'),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, service_name, role_name)
+    UNIQUE(user_id, role_name)
 );
 
 CREATE TABLE user_devices (
@@ -21,7 +21,6 @@ CREATE TABLE user_devices (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     device_id VARCHAR(255),
     device_model VARCHAR(255),
-    portal VARCHAR(255),
     login_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -52,3 +51,20 @@ CREATE UNIQUE INDEX uq_organisation_invitation_pending ON organisation_invitatio
 CREATE INDEX idx_organisation_invitations_phone ON organisation_invitations (phone_number, status, created_at, id);
 CREATE INDEX idx_organisation_invitations_org ON organisation_invitations (organisation_id, status, created_at, id);
 CREATE INDEX idx_organisations_admin_list ON organisations (created_at, id);
+
+CREATE TABLE business_entitlements (
+ business_type VARCHAR(30) NOT NULL, business_id UUID NOT NULL,
+ organisation_id UUID NOT NULL REFERENCES organisations(id),
+ application_status VARCHAR(20) NOT NULL CHECK (application_status IN ('DRAFT','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','SUSPENDED')),
+ reason VARCHAR(500), application_version BIGINT NOT NULL CHECK (application_version >= 0),
+ updated_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (business_type,business_id)
+);
+CREATE INDEX idx_business_entitlements_org ON business_entitlements (organisation_id,application_status);
+CREATE TABLE delivery_entitlements (
+ user_id UUID PRIMARY KEY REFERENCES users(id),
+ application_status VARCHAR(20) NOT NULL CHECK (application_status IN ('DRAFT','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','SUSPENDED')),
+ reason VARCHAR(500), application_version BIGINT NOT NULL CHECK (application_version >= 0), updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE entitlement_version_publications (
+ user_id UUID PRIMARY KEY REFERENCES users(id), entitlements_version BIGINT NOT NULL
+);

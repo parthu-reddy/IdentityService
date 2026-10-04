@@ -12,10 +12,15 @@ public final class DevOtpAccessPolicy {
 
     public static final String AVAILABILITY_HEADER = "X-Dev-OTP-Available";
 
-    public boolean allows(String phoneNumber, AuthPortal portal) {
-        if (phoneNumber == null || !phoneNumber.matches("[0-9]{10}") || portal == null) {
+    private final com.fooddelivery.identity.entitlement.service.EntitlementService entitlements;
+    public DevOtpAccessPolicy(com.fooddelivery.identity.entitlement.service.EntitlementService entitlements) {this.entitlements=entitlements;}
+
+    public boolean allows(String phoneNumber, OtpPurpose purpose) {
+        if (phoneNumber == null || !phoneNumber.matches("[0-9]{10}") || purpose == null) {
             return false;
         }
-        return portal != AuthPortal.ADMIN || SeededOtpAccountPolicy.allows(phoneNumber, portal);
+        if (purpose==OtpPurpose.LOGIN) return true;
+        if (!SeededOtpAccountPolicy.allows(phoneNumber,purpose)) return false;
+        return entitlements.administratorWithPhone(phoneNumber);
     }
 }

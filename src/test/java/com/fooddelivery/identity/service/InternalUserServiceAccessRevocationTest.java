@@ -1,109 +1,75 @@
 package com.fooddelivery.identity.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fooddelivery.common.enums.RoleName;
-import com.fooddelivery.identity.entity.AppUser;
-import com.fooddelivery.identity.entity.UserRole;
-import com.fooddelivery.identity.repository.UserRepository;
-import com.fooddelivery.identity.repository.UserRoleRepository;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import com.fooddelivery.identity.entity.*;
+import com.fooddelivery.identity.entitlement.service.*;
+import com.fooddelivery.identity.repository.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.support.*;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class InternalUserServiceAccessRevocationTest {
-
-    private final UserRepository users = mock(UserRepository.class);
-    private final UserRoleRepository roles = mock(UserRoleRepository.class);
-    private final AuthService authService = mock(AuthService.class);
-    private final InternalUserService service = new InternalUserService(users, roles, authService);
-
-    @Test
-    void suspensionRevokesAllExistingSessions() {
-        AppUser user = activeUser();
-        when(users.findById(user.getId())).thenReturn(Optional.of(user));
-
-        service.updateUserStatus(user.getId(), false);
-
-        assertEquals(false, user.isActive());
-        verify(users).save(user);
-        verify(authService).removeAllSessions(user.getId());
+    final UserRepository users=mock(UserRepository.class);
+    final UserRoleRepository staff=mock(UserRoleRepository.class);
+    final AuthService auth=mock(AuthService.class);
+    final EntitlementService entitlements=mock(EntitlementService.class);
+    final EntitlementVersionPublisher versions=mock(EntitlementVersionPublisher.class);
+    final InternalUserService service=new InternalUserService(users,staff,auth,entitlements,versions);
+    final AppUser person=AppUser.builder().id(UUID.randomUUID()).isActive(true).phoneNumber("9000000001").build();
+    final AppUser second=AppUser.builder().id(UUID.randomUUID()).isActive(true).phoneNumber("9000000002").build();
+    UserRole role(AppUser user) {return UserRole.builder().user(user).roleName(RoleName.ADMIN).build();}
+    void fixture(List<UserRole> admins) {when(users.lockById(person.getId())).thenReturn(Optional.of(person));when(staff.findByRoleNameForUpdate(RoleName.ADMIN)).thenReturn(admins);}
+    @Test void suspensionBumpsVersionAndRevokesAllSessions() {
+        fixture(List.of());service.updateUserStatus(person.getId(),false);
+        assertFalse(person.isActive());verify(users).saveAndFlush(person);verify(versions).bump(List.of(person.getId()));verify(auth).removeAllSessions(person.getId());
     }
-
-    @Test
-    void addingRoleUsesServerOwnedPortalAndRevokesSessions() {
-        AppUser user = activeUser();
-        when(users.findById(user.getId())).thenReturn(Optional.of(user));
-        when(roles.findByUserId(user.getId())).thenReturn(List.of());
-
-        service.addRoleToUser(user.getId(), RoleName.DELIVERY);
-
-        org.mockito.ArgumentCaptor<UserRole> assignment = org.mockito.ArgumentCaptor.forClass(UserRole.class);
-        verify(roles).save(assignment.capture());
-        assertEquals(RoleName.DELIVERY, assignment.getValue().getRoleName());
-        assertEquals("DeliveryExecutiveApplication", assignment.getValue().getServiceName());
-        verify(authService).removeAllSessions(user.getId());
+    @Test void staffGrantBumpsVersionAndRevokesOnlyAfterCommit() {
+        fixture(List.of());when(staff.findByUserId(person.getId())).thenReturn(List.of());
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.addRoleToUser(person.getId(),RoleName.ADMIN);verifyNoInteractions(auth);
+            var assignment=org.mockito.ArgumentCaptor.forClass(UserRole.class);verify(staff).saveAndFlush(assignment.capture());
+            assertEquals(RoleName.ADMIN,assignment.getValue().getRoleName());verify(versions).bump(List.of(person.getId()));
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+            verify(auth).removeAllSessions(person.getId());
+        } finally {TransactionSynchronizationManager.clearSynchronization();}
     }
-
-    @Test
-    void removingRoleDeletesLegacyAliasesAndRevokesSessions() {
-        AppUser user = activeUser();
-        when(users.findById(user.getId())).thenReturn(Optional.of(user));
-        when(roles.findByUserId(user.getId())).thenReturn(List.of(
-                UserRole.builder().user(user).roleName(RoleName.ADMIN).serviceName("ADMIN").build(),
-                UserRole.builder().user(user).roleName(RoleName.ADMIN).serviceName("AdminApplication").build()));
-        when(roles.findByRoleNameForUpdate(RoleName.ADMIN)).thenReturn(List.of(
-                UserRole.builder().user(user).roleName(RoleName.ADMIN).serviceName("ADMIN").build(),
-                UserRole.builder().user(user).roleName(RoleName.ADMIN).serviceName("AdminApplication").build(),
-                UserRole.builder().user(activeUser()).roleName(RoleName.ADMIN).serviceName("ADMIN").build()));
-
-        service.removeRoleFromUser(user.getId(), RoleName.ADMIN);
-
-        verify(roles).deleteByUserIdAndRoleName(user.getId(), RoleName.ADMIN);
-        verify(authService).removeAllSessions(user.getId());
+    @Test void computedPortalRolesCannotBeManuallyGrantedOrRemoved() {
+        for(var role:RoleName.values()) if(role!=RoleName.ADMIN) {
+            assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,()->service.addRoleToUser(person.getId(),role)).getStatusCode());
+            assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,()->service.removeRoleFromUser(person.getId(),role)).getStatusCode());
+        }
+        verifyNoInteractions(users,staff,versions,auth);
     }
-
-    @Test
-    void lastAdministratorCannotBeRemoved() {
-        AppUser admin = activeUser();
-        UserRole assignment = UserRole.builder().user(admin).roleName(RoleName.ADMIN).serviceName("ADMIN").build();
-        when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
-        when(roles.findByUserId(admin.getId())).thenReturn(List.of(assignment));
-        when(roles.findByRoleNameForUpdate(RoleName.ADMIN)).thenReturn(List.of(assignment));
-
-        ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.removeRoleFromUser(admin.getId(), RoleName.ADMIN));
-
-        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
-        verify(roles, never()).deleteByUserIdAndRoleName(admin.getId(), RoleName.ADMIN);
-        verify(authService, never()).removeAllSessions(admin.getId());
+    @Test void removalBumpsAndRevokesSessions() {
+        fixture(List.of(role(person),role(second)));service.removeRoleFromUser(person.getId(),RoleName.ADMIN);
+        verify(staff).deleteByUserIdAndRoleName(person.getId(),RoleName.ADMIN);verify(versions).bump(List.of(person.getId()));verify(auth).removeAllSessions(person.getId());
     }
-
-    @Test
-    void administratorCannotRemoveOwnAdminRole() {
-        AppUser admin = activeUser();
-        when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
-        when(roles.findByUserId(admin.getId())).thenReturn(List.of(
-                UserRole.builder().user(admin).roleName(RoleName.ADMIN).serviceName("ADMIN").build()));
-
-        ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.removeRoleFromUser(admin.getId(), RoleName.ADMIN, admin.getId()));
-
-        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
-        verify(roles, never()).deleteByUserIdAndRoleName(admin.getId(), RoleName.ADMIN);
-        verify(authService, never()).removeAllSessions(admin.getId());
+    @Test void finalActiveAdministratorCannotBeRemovedOrSuspended() {
+        second.setActive(false);fixture(List.of(role(person),role(second)));
+        assertEquals(HttpStatus.CONFLICT,assertThrows(ResponseStatusException.class,()->service.removeRoleFromUser(person.getId(),RoleName.ADMIN)).getStatusCode());
+        assertEquals(HttpStatus.CONFLICT,assertThrows(ResponseStatusException.class,()->service.updateUserStatus(person.getId(),false)).getStatusCode());
+        verify(staff,never()).deleteByUserIdAndRoleName(any(),any());verifyNoInteractions(versions,auth);assertTrue(person.isActive());
     }
-
-    private static AppUser activeUser() {
-        return AppUser.builder().id(UUID.randomUUID()).phoneNumber("9000000001").isActive(true).build();
+    @Test void selfRemovalAndSuspensionAreRefused() {
+        fixture(List.of(role(person),role(second)));
+        assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,()->service.removeRoleFromUser(person.getId(),RoleName.ADMIN,person.getId())).getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,()->service.updateUserStatus(person.getId(),false,person.getId())).getStatusCode());
+        verifyNoInteractions(versions,auth);
+    }
+    @Test void unchangedStatusAndExistingStaffAssignmentDoNotRevoke() {
+        fixture(List.of(role(person)));when(staff.findByUserId(person.getId())).thenReturn(List.of(role(person)));
+        service.updateUserStatus(person.getId(),true);service.addRoleToUser(person.getId(),RoleName.ADMIN);verifyNoInteractions(versions,auth);
+    }
+    @Test void noRevocationOccursForRolledBackStaffWrite() {
+        fixture(List.of());when(staff.findByUserId(person.getId())).thenReturn(List.of());
+        TransactionSynchronizationManager.initSynchronization();
+        try {service.addRoleToUser(person.getId(),RoleName.ADMIN);
+            TransactionSynchronizationManager.getSynchronizations().forEach(s->s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));verifyNoInteractions(auth);
+        } finally {TransactionSynchronizationManager.clearSynchronization();}
     }
 }

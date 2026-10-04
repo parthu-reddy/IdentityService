@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
     classes = IdentityApplication.class, 
     webEnvironment = SpringBootTest.WebEnvironment.NONE, 
     properties = {
-        "spring.cloud.config.enabled=false", 
+        "spring.cloud.config.enabled=false", "spring.kafka.listener.auto-startup=false",
         "jwt.expiration=1000",
         "jwt.secret=somesecret",
         "spring.datasource.driver-class-name=org.h2.Driver", 
@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 )
 @org.springframework.test.context.ActiveProfiles("contract-test")
 class IdentityApplicationStartupTest {
+    @org.springframework.boot.test.mock.mockito.MockBean org.springframework.kafka.core.KafkaAdmin kafkaAdmin;
 
     @org.springframework.boot.test.mock.mockito.MockBean
     private com.fooddelivery.common.service.RateLimitingService rateLimitingService;
@@ -44,6 +45,9 @@ class IdentityApplicationStartupTest {
 
     @Test
     void contextLoads() {
+        assertTrue(applicationContext.containsBean("entitlementEventProcessor"));
+        assertTrue(applicationContext.containsBean("restaurantApplicationStatusConsumer"));
+        assertTrue(applicationContext.containsBean("deliveryApplicationStatusConsumer"));
     }
 
     @Autowired

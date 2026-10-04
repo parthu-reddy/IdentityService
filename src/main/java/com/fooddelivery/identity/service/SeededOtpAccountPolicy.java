@@ -18,16 +18,15 @@ public final class SeededOtpAccountPolicy {
     private SeededOtpAccountPolicy() {
     }
 
-    public static boolean allows(String phoneNumber, AuthPortal portal) {
-        if (phoneNumber == null || !phoneNumber.matches("\\d{10}") || portal == null) {
+    public static boolean allows(String phoneNumber, OtpPurpose purpose) {
+        if (phoneNumber == null || !phoneNumber.matches("[0-9]{10}") || purpose == null) {
             return false;
         }
 
         long phone = Long.parseLong(phoneNumber);
-        return switch (portal) {
-            case CUSTOMER -> inRange(phone, CUSTOMER_FIRST, CUSTOMER_LAST);
-            case RESTAURANT -> inRange(phone, RESTAURANT_FIRST, RESTAURANT_LAST);
-            case DELIVERY -> inRange(phone, DELIVERY_FIRST, DELIVERY_LAST);
+        return switch (purpose) {
+            case LOGIN -> inRange(phone,CUSTOMER_FIRST,CUSTOMER_LAST) || inRange(phone,RESTAURANT_FIRST,RESTAURANT_LAST)
+                || inRange(phone,DELIVERY_FIRST,DELIVERY_LAST) || inRange(phone,ADMIN_FIRST,ADMIN_LAST);
             case ADMIN -> inRange(phone, ADMIN_FIRST, ADMIN_LAST);
         };
     }

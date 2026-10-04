@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user_roles")@lombok.AllArgsConstructor
+@Table(name = "user_roles", uniqueConstraints=@jakarta.persistence.UniqueConstraint(columnNames={"user_id","role_name"}))@lombok.AllArgsConstructor
 @lombok.NoArgsConstructor
 @lombok.Builder
 @lombok.Data
@@ -28,8 +28,6 @@ public class UserRole {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
-    @Column(name = "service_name")
-    private String serviceName;
     @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(name = "role_name")
     private RoleName roleName;

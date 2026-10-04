@@ -10,5 +10,4 @@ import java.util.UUID;
 @Repository
 public interface UserDeviceRepository extends JpaRepository<UserDevice, String> {
     List<UserDevice> findByUserIdOrderByLoginTimeAsc(UUID userId);
-    List<UserDevice> findByUserIdAndPortalOrderByLoginTimeAsc(UUID userId, String portal);
 }

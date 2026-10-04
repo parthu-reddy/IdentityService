@@ -66,9 +66,9 @@ public class AdminUserController {
     @PutMapping("/{userId}/status")
     public ResponseEntity<ApiResponse<String>> updateUserStatus(
             @PathVariable UUID userId,
-            @Valid @RequestBody com.fooddelivery.identity.dto.StatusUpdateDTO status) {
+            @Valid @RequestBody com.fooddelivery.identity.dto.StatusUpdateDTO status, Authentication authentication) {
         boolean isActive = status.getIsActive() != null ? status.getIsActive() : true;
-        internalUserService.updateUserStatus(userId, isActive);
+        internalUserService.updateUserStatus(userId, isActive, authenticatedUserId(authentication));
         return ResponseEntity.ok(ApiResponse.success(null, "User status updated successfully"));
     }
 
@@ -85,7 +85,7 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.success(com.fooddelivery.common.dto.PageResponseDto.of(users), "Users retrieved successfully"));
     }
 
-    /** Server maps the requested role to its portal; callers cannot choose a role's service scope. */
+    /** Only staff ADMIN assignments are writable; portal access follows applications and membership. */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/roles")
     public ResponseEntity<ApiResponse<String>> addRole(@PathVariable UUID id, @Valid @RequestBody RoleRequestDTO request) {

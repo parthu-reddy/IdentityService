@@ -5,6 +5,8 @@ import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
 import com.fooddelivery.identity.repository.UserRepository;
 import com.fooddelivery.identity.entity.AppUser;
+import com.fooddelivery.identity.entitlement.repository.BusinessEntitlementRepository;
+import com.fooddelivery.identity.entitlement.service.EntitlementVersionPublisher;
 import com.fooddelivery.common.enums.*;
 import com.fooddelivery.common.constants.EventType;
 import com.fooddelivery.common.audit.AuditTrail;
@@ -28,13 +30,15 @@ class OrganisationServiceTest {
     OrganisationRepository orgs;OrganisationMemberRepository members;OrganisationInvitationRepository invitations;
     UserRepository users;OutboxEventRepository outbox;AuditTrail audit;OrganisationRateLimits limits;
     OrganisationService service;OrganisationInvitationService invites;Organisation org;
+    EntitlementVersionPublisher versions;
     Authentication auth(UUID id){return new UsernamePasswordAuthenticationToken(id.toString(),null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER")));}
     OrganisationMember member(UUID id,OrganisationRole role){return OrganisationMember.builder().id(UUID.randomUUID()).organisationId(orgId).userId(id).role(role).status(MembershipStatus.ACTIVE).createdAt(now).updatedAt(now).version(1L).build();}
     @BeforeEach void setup(){
         orgs=mock(OrganisationRepository.class);members=mock(OrganisationMemberRepository.class);invitations=mock(OrganisationInvitationRepository.class);
         users=mock(UserRepository.class);outbox=mock(OutboxEventRepository.class);audit=mock(AuditTrail.class);limits=mock(OrganisationRateLimits.class);
         Clock clock=Clock.fixed(now,ZoneOffset.UTC);
-        service=new OrganisationService(orgs,members,invitations,users,outbox,new ObjectMapper().findAndRegisterModules(),audit,limits,clock,new SimpleMeterRegistry());
+        versions=mock(EntitlementVersionPublisher.class);
+        service=new OrganisationService(orgs,members,invitations,users,outbox,new ObjectMapper().findAndRegisterModules(),audit,limits,clock,new SimpleMeterRegistry(),mock(BusinessEntitlementRepository.class),versions);
         invites=new OrganisationInvitationService(service,invitations,orgs,members,users,limits,clock);
         org=Organisation.builder().id(orgId).displayName("Brand").status(OrganisationStatus.ACTIVE).createdBy(owner).createdAt(now).updatedAt(now).version(1L).build();
         when(orgs.findById(orgId)).thenReturn(Optional.of(org));when(orgs.lockById(orgId)).thenReturn(Optional.of(org));
@@ -69,6 +73,7 @@ class OrganisationServiceTest {
         var saved=ArgumentCaptor.forClass(OrganisationMember.class);verify(members,times(2)).saveAndFlush(saved.capture());
         assertEquals(owner,saved.getAllValues().get(0).getUserId());assertEquals(OrganisationRole.ADMIN,saved.getAllValues().get(0).getRole());
         assertEquals(OrganisationRole.OWNER,saved.getAllValues().get(1).getRole());verify(outbox,times(2)).save(any());
+        verify(versions).bump(List.of(owner,other));verifyNoMoreInteractions(versions);
     }
     @Test void suspendedOrganisationRefusesWrites(){org.setStatus(OrganisationStatus.SUSPENDED);refuses(403,()->service.rename(auth(owner),orgId,"New"));}
     @Test void platformAdminCannotAcquireOrganisationWritesThroughOwnerMembership(){
@@ -77,7 +82,7 @@ class OrganisationServiceTest {
         verify(outbox,never()).save(any());
     }
     @Test void suspendedOrganisationRefusesEvenSelfRemoval(){org.setStatus(OrganisationStatus.SUSPENDED);refuses(403,()->service.remove(auth(other),orgId,other));verify(outbox,never()).save(any());}
-    @Test void unchangedRoleDoesNotEmitDuplicateVersionEvent(){service.changeRole(auth(owner),orgId,other,OrganisationRole.MANAGER);verify(outbox,never()).save(any());verify(audit,never()).record(any(),any(),any(),any(),any(),any(),any(),any(),any());}
+    @Test void unchangedRoleDoesNotEmitDuplicateVersionEvent(){service.changeRole(auth(owner),orgId,other,OrganisationRole.MANAGER);verify(outbox,never()).save(any());verify(audit,never()).record(any(),any(),any(),any(),any(),any(),any(),any(),any());verifyNoInteractions(versions);}
     @Test void staffCannotInviteAndOwnerCannotInviteOwner(){when(members.findByOrganisationIdAndUserId(orgId,other)).thenReturn(Optional.of(member(other,OrganisationRole.STAFF)));refuses(403,()->invites.invite(auth(other),orgId,"8999000003",OrganisationRole.STAFF));refuses(400,()->invites.invite(auth(owner),orgId,"8999000003",OrganisationRole.OWNER));}
     @Test void duplicateInvitationAndMemberLimitAreConflicts(){when(invitations.existsByOrganisationIdAndPhoneNumberAndStatus(orgId,"8999000003",InvitationStatus.PENDING)).thenReturn(true);refuses(409,()->invites.invite(auth(owner),orgId,"8999000003",OrganisationRole.STAFF));when(members.countByOrganisationIdAndStatus(orgId,MembershipStatus.ACTIVE)).thenReturn(200L);refuses(409,()->invites.invite(auth(owner),orgId,"8999000004",OrganisationRole.STAFF));}
     OrganisationInvitation pending(String phone){var i=OrganisationInvitation.builder().id(UUID.randomUUID()).organisationId(orgId).phoneNumber(phone).role(OrganisationRole.STAFF).status(InvitationStatus.PENDING).invitedBy(owner).expiresAt(now.plus(Duration.ofDays(7))).createdAt(now).updatedAt(now).build();when(invitations.organisationIdFor(i.getId())).thenReturn(Optional.of(orgId));when(invitations.findById(i.getId())).thenReturn(Optional.of(i));return i;}

@@ -27,7 +27,7 @@ public class OrganisationInvitationService {
     @Transactional
     public InvitationView invite(Authentication auth,UUID orgId,String phone,OrganisationRole role) {
         UUID actor=userId(auth);
-        organisationService.writableOrganisation(orgId,auth,OrganisationPermission.MEMBERS_MANAGE);
+        var organisation=organisationService.writableOrganisation(orgId,auth,OrganisationPermission.MEMBERS_MANAGE);
         var caller=organisationService.memberFor(orgId,actor);
         if (phone==null || !phone.matches("[0-9]{10}") || role==null || role==OrganisationRole.OWNER) {
             throw refusal(HttpStatus.BAD_REQUEST,"Use a ten-digit phone and an ADMIN, MANAGER or STAFF role",orgId,actor);
@@ -50,19 +50,23 @@ public class OrganisationInvitationService {
             .phoneNumber(phone).role(role).status(InvitationStatus.PENDING).invitedBy(actor)
             .expiresAt(now.plus(Duration.ofDays(7))).createdAt(now).updatedAt(now).build());
         organisationService.audit(actor,"USER",AuditAction.MEMBER_INVITED,"INVITATION",invite.getId(),orgId,null,Map.of());
-        organisationService.invitationMetric("created"); return view(invite);
+        organisationService.invitationMetric("created"); return view(invite,organisation.getDisplayName());
     }
 
     public Slice<InvitationView> list(Authentication auth,UUID orgId,int page,int size) {
         var org=organisationService.organisation(orgId);
         var caller=organisationService.memberFor(orgId,userId(auth));
         organisationService.requirePermission(org,caller,OrganisationPermission.MEMBERS_MANAGE);
-        return invitations.findAllByOrganisationId(orgId,page(page,size)).map(this::view);
+        return invitations.findAllByOrganisationId(orgId,page(page,size)).map(invite -> view(invite,org.getDisplayName()));
     }
 
     public Slice<InvitationView> mine(Authentication auth,int page,int size) {
         UUID actor=userId(auth); var user=users.findById(actor).orElseThrow(() -> refusal(HttpStatus.UNAUTHORIZED,"User unavailable",null,actor));
-        return invitations.findAllByPhoneNumberAndStatus(user.getPhoneNumber(),InvitationStatus.PENDING,page(page,size)).map(this::view);
+        var slice=invitations.findAllByPhoneNumberAndStatus(user.getPhoneNumber(),InvitationStatus.PENDING,page(page,size));
+        var ids=slice.getContent().stream().map(OrganisationInvitation::getOrganisationId).distinct().toList();
+        var names=new HashMap<UUID,String>();
+        organisations.findAllById(ids).forEach(org -> names.put(org.getId(),org.getDisplayName()));
+        return slice.map(invite -> view(invite,names.getOrDefault(invite.getOrganisationId(),"Organisation")));
     }
 
     @Transactional(noRollbackFor=InvitationExpiredException.class)
@@ -96,7 +100,7 @@ public class OrganisationInvitationService {
         invitation.setRespondedBy(actor);invitation.setUpdatedAt(clock.instant());
         organisationService.audit(actor,"USER",accept?AuditAction.INVITATION_ACCEPTED:AuditAction.INVITATION_DECLINED,
             "INVITATION",invitationId,orgId,null,Map.of());
-        organisationService.invitationMetric(accept?"accepted":"declined"); return view(invitation);
+        organisationService.invitationMetric(accept?"accepted":"declined"); return view(invitation,org.getDisplayName());
     }
 
     @Transactional
@@ -116,8 +120,8 @@ public class OrganisationInvitationService {
         organisationService.audit(null,"SERVICE",AuditAction.INVITATION_EXPIRED,"INVITATION",invitation.getId(),invitation.getOrganisationId(),null,Map.of());
         organisationService.invitationMetric("expired");
     }
-    private InvitationView view(OrganisationInvitation i) {
+    private InvitationView view(OrganisationInvitation i,String organisationName) {
         InvitationStatus status=i.getStatus()==InvitationStatus.PENDING && !i.getExpiresAt().isAfter(clock.instant())?InvitationStatus.EXPIRED:i.getStatus();
-        return new InvitationView(i.getId(),i.getOrganisationId(),i.getPhoneNumber(),i.getRole(),status,i.getExpiresAt(),i.getCreatedAt());
+        return new InvitationView(i.getId(),i.getOrganisationId(),i.getPhoneNumber(),i.getRole(),status,i.getExpiresAt(),i.getCreatedAt(),organisationName);
     }
 }

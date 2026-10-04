@@ -50,6 +50,11 @@ public class UserController {
         AppUser user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
+        if (request.getPhone() != null && !request.getPhone().isBlank()
+                && !request.getPhone().equals(user.getPhoneNumber())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Phone changes require verification"));
+        }
+
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             if (user.getName() != null && !user.getName().trim().isEmpty()
                     && !user.getName().equals(request.getName())) {
@@ -66,10 +71,6 @@ public class UserController {
                         .body(ApiResponse.error("Email cannot be modified once set"));
             }
             user.setEmail(request.getEmail());
-        }
-
-        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
-            user.setPhoneNumber(request.getPhone());
         }
 
         userRepository.save(user);

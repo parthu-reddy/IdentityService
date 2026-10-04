@@ -1,273 +1,153 @@
 package com.fooddelivery.identity.service;
 
-import com.fooddelivery.identity.port.CachePort;
-import com.fooddelivery.identity.port.EventPublisherPort;
-import com.fooddelivery.identity.entity.AppUser;
-import com.fooddelivery.identity.entity.UserRole;
-import com.fooddelivery.identity.repository.UserRepository;
-import com.fooddelivery.identity.repository.UserRoleRepository;
+import com.fooddelivery.common.audit.AuditTrail;
+import com.fooddelivery.common.constants.RedisKeyConstants;
+import com.fooddelivery.common.enums.*;
+import com.fooddelivery.identity.dto.AuthRequests.*;
 import com.fooddelivery.identity.dto.SessionInfo;
-import com.fooddelivery.identity.exception.MaxSessionsReachedException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fooddelivery.identity.entity.AppUser;
+import com.fooddelivery.identity.entitlement.service.EntitlementService;
+import com.fooddelivery.identity.port.*;
+import com.fooddelivery.identity.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.Claims;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
-import java.security.SecureRandom;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Duration;
-import java.util.Base64;
-import java.util.stream.Collectors;
-import java.util.Date;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.UUID;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.*;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.spec.*;
+import java.time.*;
+import java.util.*;
 
-@Service
-@lombok.extern.slf4j.Slf4j
+@Service @lombok.RequiredArgsConstructor
 public class AuthService {
-    @java.lang.SuppressWarnings("all")
-
-    private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final EventPublisherPort eventPublisherPort;
-    private final CachePort cachePort;
-    private final ObjectMapper objectMapper;
-    private final SecureRandom secureRandom = new SecureRandom();
-    // Redis based rate limiting will be used via CachePort
-    @Value("${jwt.private-key.path:classpath:certs/private.pem}")
-    private Resource privateKeyResource;
-    @Value("${jwt.public-key.path:classpath:certs/public.pem}")
-    private Resource publicKeyResource;
-    @Value("${jwt.expiration}")
-    private long jwtExpirationMs;
-    @Value("${identity.auth.initiate.max-attempts:10}")
-    private int initiateMaxAttempts = 10;
-    @Value("${identity.auth.initiate.window-minutes:10}")
-    private int initiateWindowMinutes = 10;
-    @Value("${identity.auth.verify.max-attempts:5}")
-    private int verifyMaxAttempts = 5;
-    @Value("${identity.auth.verify.window-minutes:5}")
-    private int verifyWindowMinutes = 5;
+    private final UserRepository users;
+    private final EventPublisherPort events;
+    private final CachePort cache;
+    private final SessionRegistry sessions;
+    private final EntitlementService entitlements;
+    private final Clock clock;
+    private final MeterRegistry metrics;
+    private final AuditTrail audit;
+    private final SecureRandom random=new SecureRandom();
+    @Value("${jwt.private-key.path:classpath:certs/private.pem}") private Resource privateKeyResource;
+    @Value("${jwt.expiration:86400000}") private long jwtExpirationMs=86400000;
+    @Value("${identity.admin-session.ttl:PT8H}") private Duration adminLifetime=Duration.ofHours(8);
+    @Value("${identity.auth.initiate.max-attempts:10}") private int initiateMaxAttempts=10;
+    @Value("${identity.auth.initiate.window-minutes:10}") private int initiateWindowMinutes=10;
+    @Value("${identity.auth.verify.max-attempts:5}") private int verifyMaxAttempts=5;
+    @Value("${identity.auth.verify.window-minutes:5}") private int verifyWindowMinutes=5;
     private PrivateKey privateKey;
-    private PublicKey publicKey;
-    private io.jsonwebtoken.JwtParser jwtParser;
 
-    @PostConstruct
-    public void init() {
+    @PostConstruct public void init() {
         try {
-            byte[] keyBytes = FileCopyUtils.copyToByteArray(privateKeyResource.getInputStream());
-            String keyString = new String(keyBytes, StandardCharsets.UTF_8).replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
-            byte[] decodedKey = Base64.getDecoder().decode(keyString);
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            this.privateKey = keyFactory.generatePrivate(keySpec);
-            if (publicKeyResource.exists()) {
-                byte[] pubKeyBytes = FileCopyUtils.copyToByteArray(publicKeyResource.getInputStream());
-                String pubKeyString = new String(pubKeyBytes, StandardCharsets.UTF_8).replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
-                byte[] decodedPubKey = Base64.getDecoder().decode(pubKeyString);
-                X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(decodedPubKey);
-                this.publicKey = keyFactory.generatePublic(pubKeySpec);
-                this.jwtParser = Jwts.parserBuilder().setSigningKey(this.publicKey).build();
-            }
-        } catch (Exception e) {
-            log.error("Failed to load RSA keys", e);
-            throw new RuntimeException("Could not load RSA keys", e);
-        }
+            var pem=new String(FileCopyUtils.copyToByteArray(privateKeyResource.getInputStream()),StandardCharsets.UTF_8);
+            var encoded=pem.replace("-----BEGIN PRIVATE KEY-----","").replace("-----END PRIVATE KEY-----","").replaceAll("\\s","");
+            privateKey=KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(encoded)));
+            if (jwtExpirationMs<=0 || adminLifetime.isNegative() || adminLifetime.isZero()) throw new IllegalArgumentException();
+        } catch (Exception ex) {throw new IllegalStateException("Authentication signing configuration is unavailable");}
     }
+    public void initiateLogin(String phone) {sendOtp(validPhone(phone),OtpPurpose.LOGIN);}
 
-    public void initiateLogin(String phoneNumber, String serviceName) {
-        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
-        String rateLimitKey = "RATELIMIT:INITIATE:" + phoneNumber;
-        Long attempts = cachePort.increment(rateLimitKey, initiateWindowMinutes);
-        if (attempts != null && attempts > initiateMaxAttempts) {
-            log.warn("Rate limit exceeded for phone number: {}", phoneNumber);
-            throw new IllegalArgumentException("Too many login attempts. Please try again later.");
-        }
-        String otp = String.format("%06d", secureRandom.nextInt(1000000));
-        cachePort.put("OTP:" + phoneNumber + ":" + portal.sessionServiceName(), otp, 5);
-        eventPublisherPort.publishNotificationEvent(phoneNumber, "SMS", otp);
-        log.info("Initiated login for {}, portal {}, OTP generated.", phoneNumber, portal.name());
+    @Transactional public SessionResponse createSession(SessionRequest request) {
+        String phone=validPhone(request.phoneNumber());verifyOtp(phone,request.otp(),OtpPurpose.LOGIN);
+        var existing=users.findByPhoneNumber(phone);boolean newUser=existing.isEmpty();
+        var user=existing.orElseGet(() -> users.saveAndFlush(AppUser.builder().phoneNumber(phone).isActive(true).build()));
+        user=lockActive(user.getId());
+        var candidate=sessions.prepare(user.getId(),OtpPurpose.LOGIN,request.deviceInfo(),request.os(),request.browser(),request.replaceSessionId());
+        var roles=entitlements.rolesFor(user.getId());consumeOtp(phone,request.otp(),OtpPurpose.LOGIN);
+        sessions.commitNew(user.getId(),candidate);cache.delete("RATELIMIT:VERIFY:"+phone);
+        return new SessionResponse(token(user,roles,candidate.get(candidate.size()-1)),newUser);
     }
-
-    @Transactional
-    public String verifyOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
-        return completeOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId, false);
-    }
-
-    /** Explicit public signup. This enrolls a partner for onboarding, never approves KYC or duty. */
-    @Transactional
-    public String registerWithOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId) {
-        if (AuthPortal.fromCallerService(serviceName) == AuthPortal.ADMIN) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
-                    "Administrator accounts must be provisioned");
-        }
-        return completeOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId, true);
-    }
-
-    private String completeOtp(String phoneNumber, String otp, String serviceName, String deviceInfo, String os, String browser, String removeSessionId, boolean registration) {
-        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
-        boolean mayEnroll = registration || portal.selfRegistrationAllowed();
-        String rateLimitKey = "RATELIMIT:VERIFY:" + phoneNumber;
-        Long attempts = cachePort.increment(rateLimitKey, verifyWindowMinutes);
-        if (attempts != null && attempts > verifyMaxAttempts) {
-            log.warn("Brute force attempt detected for phone number: {}", phoneNumber);
-            cachePort.delete("OTP:" + phoneNumber + ":" + portal.sessionServiceName()); // Invalidate the OTP
-            throw new IllegalArgumentException("Too many failed attempts. Please request a new OTP.");
-        }
-        String normalizedServiceName = portal.sessionServiceName();
-        String cacheKey = "OTP:" + phoneNumber + ":" + normalizedServiceName;
-        String cachedOtp = cachePort.get(cacheKey);
-        if (cachedOtp != null && cachedOtp.equals(otp)) {
-            AppUser user = userRepository.findByPhoneNumber(phoneNumber).orElseGet(() -> {
-                if (!mayEnroll) {
-                    throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
-                            "This account has not been provisioned for the selected portal");
-                }
-                return userRepository.save(AppUser.builder().phoneNumber(phoneNumber).isActive(true).build());
-            });
-            if (!user.isActive()) {
-                cachePort.delete(cacheKey);
-                throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
-                        "This account is inactive");
-            }
-
-            List<UserRole> assignedRoles = userRoleRepository.findByUserId(user.getId());
-            List<String> finalRoleNames = assignedRoles.stream()
-                    .filter(portal::matches)
-                    .map(assignment -> assignment.getRoleName().name())
-                    .distinct()
-                    .collect(Collectors.toList());
-            if (finalRoleNames.isEmpty() && mayEnroll) {
-                userRoleRepository.save(UserRole.builder()
-                        .user(user)
-                        .serviceName(portal.canonicalServiceName())
-                        .roleName(portal.role())
-                        .build());
-                finalRoleNames = List.of(portal.role().name());
-            }
-            if (finalRoleNames.isEmpty()) {
-                cachePort.delete(cacheKey);
-                throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
-                        "This account has not been provisioned for the selected portal");
-            }
-            List<SessionInfo> activeSessions = getActiveSessions(user.getId());
-            if (removeSessionId != null && !removeSessionId.isEmpty()) {
-                activeSessions.removeIf(session -> session.getSessionId().equals(removeSessionId));
-                cachePort.put("BLACKLIST:SESSION:" + removeSessionId, "true", jwtExpirationMs / 60000);
-            }
-            List<SessionInfo> serviceSessions = activeSessions.stream().filter(s -> normalizedServiceName.equals(s.getServiceName())).collect(Collectors.toList());
-            // Auto-replace stale sessions from the same device (same OS + browser).
-            // This handles the case where a user's browser crashed or cookies were cleared —
-            // the old session is orphaned but still counted. We replace it silently.
-            if (serviceSessions.size() >= 2 && os != null && browser != null) {
-                String deviceFingerprint = os + "|" + browser;
-                SessionInfo staleSession = serviceSessions.stream().filter(s -> (s.getOs() + "|" + s.getBrowser()).equals(deviceFingerprint)).findFirst().orElse(null);
-                if (staleSession != null) {
-                    log.info("Auto-replacing stale session {} from same device ({}) for user {}", staleSession.getSessionId(), deviceFingerprint, user.getId());
-                    activeSessions.removeIf(s -> s.getSessionId().equals(staleSession.getSessionId()));
-                    cachePort.put("BLACKLIST:SESSION:" + staleSession.getSessionId(), "true", jwtExpirationMs / 60000);
-                    // Recalculate after removal
-                    serviceSessions = activeSessions.stream().filter(s -> normalizedServiceName.equals(s.getServiceName())).collect(Collectors.toList());
-                }
-            }
-            if (serviceSessions.size() >= 2) {
-                // DO NOT delete OTP or rate limit here so user can immediately retry with a removeSessionId
-                throw new MaxSessionsReachedException("Maximum concurrent sessions reached", serviceSessions);
-            }
-            cachePort.delete(cacheKey);
-            cachePort.delete(rateLimitKey); // Reset verification attempts on success
-            String newSessionId = UUID.randomUUID().toString();
-            activeSessions.add(SessionInfo.builder().sessionId(newSessionId).deviceInfo(deviceInfo != null ? deviceInfo : "Unknown Device").os(os != null ? os : "Unknown OS").browser(browser != null ? browser : "Unknown Browser").lastActive(System.currentTimeMillis()).serviceName(normalizedServiceName).build());
-            saveActiveSessions(user.getId(), activeSessions);
-            return generateJwtToken(user, finalRoleNames, newSessionId);
-        }
-        throw new IllegalArgumentException("Invalid or expired OTP");
-    }
-
-    private List<SessionInfo> getActiveSessions(UUID userId) {
-        String sessionsJson = cachePort.get("USER_SESSIONS:" + userId);
-        if (sessionsJson != null) {
-            try {
-                return objectMapper.readValue(sessionsJson, new TypeReference<List<SessionInfo>>() {
-                });
-            } catch (Exception e) {
-                log.warn("Failed to parse sessions for user {}", userId, e);
-            }
-        }
-        return new ArrayList<>();
-    }
-
-    private void saveActiveSessions(UUID userId, List<SessionInfo> sessions) {
+    @Transactional public SessionResponse refresh(UUID userId,String sid) {
         try {
-            String json = objectMapper.writeValueAsString(sessions);
-            cachePort.put("USER_SESSIONS:" + userId, json, jwtExpirationMs / 60000);
-        } catch (Exception e) {
-            log.warn("Failed to save sessions for user {}", userId, e);
+            var user=lockActive(userId);var session=sessions.require(userId,sid);
+            limit(RedisKeyConstants.RL_SESSION_REFRESH+sid,60,30);
+            var roles=session.getPurpose()==OtpPurpose.ADMIN?adminRoles(userId):entitlements.rolesFor(userId);
+            String token=token(user,roles,session);sessions.touch(userId,sid);
+            metrics.counter("auth.session.refresh","reason","requested","result","success").increment();
+            return new SessionResponse(token,false);
+        } catch (RuntimeException ex) {
+            metrics.counter("auth.session.refresh","reason","requested","result","refused").increment();throw ex;
         }
     }
-
-    public void logout(String token) {
+    @Transactional(readOnly=true) public void initiateAdminOtp(UUID userId,String sid) {
+        var user=entitlements.requireActiveUser(userId);adminRoles(userId);sessions.require(userId,sid);
+        sendOtp(user.getPhoneNumber(),OtpPurpose.ADMIN);
+    }
+    @Transactional public SessionResponse createAdminSession(UUID userId,String sourceSid,AdminSessionRequest request) {
         try {
-            Claims claims = jwtParser.parseClaimsJws(token).getBody();
-            String userIdStr = claims.getSubject();
-            String sessionId = claims.get("sessionId", String.class);
-            if (userIdStr != null && sessionId != null) {
-                UUID userId = UUID.fromString(userIdStr);
-                removeSession(userId, sessionId);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse token for logout", e);
-        }
+            var user=lockActive(userId);var source=sessions.require(userId,sourceSid);var roles=adminRoles(userId);
+            verifyOtp(user.getPhoneNumber(),request.otp(),OtpPurpose.ADMIN);
+            if (sourceSid.equals(request.replaceSessionId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose another session so your everyday sign-in remains available");
+            var candidate=sessions.prepare(userId,OtpPurpose.ADMIN,source.getDeviceInfo(),source.getOs(),source.getBrowser(),request.replaceSessionId());
+            audit.record(clock.instant(),userId,"ADMIN",AuditAction.ADMIN_STEP_UP,"USER",userId,null,null,Map.of());
+            consumeOtp(user.getPhoneNumber(),request.otp(),OtpPurpose.ADMIN);sessions.commitNew(userId,candidate);
+            String token=token(user,roles,candidate.get(candidate.size()-1));
+            metrics.counter("auth.admin_stepup","result","issued").increment();return new SessionResponse(token,false);
+        } catch (RuntimeException ex) {metrics.counter("auth.admin_stepup","result","refused").increment();throw ex;}
     }
-
-    public List<SessionInfo> getUserSessions(UUID userId) {
-        return getActiveSessions(userId);
+    @Transactional public void logout(UUID userId,String sid) {users.lockById(userId);sessions.remove(userId,sid,false);}
+    @Transactional(readOnly=true) public List<SessionInfo> getUserSessions(UUID userId) {
+        entitlements.requireActiveUser(userId);return sessions.list(userId);
     }
-
-    public void removeSession(UUID userId, String sessionId) {
-        List<SessionInfo> activeSessions = getActiveSessions(userId);
-        boolean removed = activeSessions.removeIf(session -> session.getSessionId().equals(sessionId));
-        if (removed) {
-            saveActiveSessions(userId, activeSessions);
-            cachePort.put("BLACKLIST:SESSION:" + sessionId, "true", jwtExpirationMs / 60000);
-        }
+    @Transactional public void removeSession(UUID userId,String sid) {lockActive(userId);sessions.remove(userId,sid,true);}
+    // Administrative account changes invoke this after their own DB commit.
+    @Transactional(propagation=Propagation.REQUIRES_NEW) public void removeAllSessions(UUID userId) {
+        users.lockById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Account not found"));sessions.removeAll(userId);
     }
-
-    public void removeAllSessions(UUID userId) {
-        List<SessionInfo> activeSessions = getActiveSessions(userId);
-        for (SessionInfo session : activeSessions) {
-            cachePort.put("BLACKLIST:SESSION:" + session.getSessionId(), "true", jwtExpirationMs / 60000);
-        }
-        activeSessions.clear();
-        saveActiveSessions(userId, activeSessions);
+    private AppUser lockActive(UUID userId) {
+        return users.lockById(userId).filter(AppUser::isActive).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Account is unavailable"));
     }
-
-    private String generateJwtToken(AppUser user, List<String> roleNames, String sessionId) {
-        // JJWT's builder takes java.util.Date; it is only ever made from an Instant, here at the boundary.
-        java.time.Instant issuedAt = java.time.Instant.now();
-        return Jwts.builder().setSubject(user.getId().toString()).claim("phone", user.getPhoneNumber()).claim("roles", roleNames).claim("sessionId", sessionId).setIssuedAt(Date.from(issuedAt)).setExpiration(Date.from(issuedAt.plusMillis(jwtExpirationMs))).signWith(privateKey, SignatureAlgorithm.RS256).compact();
+    private List<RoleName> adminRoles(UUID userId) {
+        if (!entitlements.isAdministrator(userId)) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Administrator access is required");
+        return List.of(RoleName.ADMIN);
     }
-
-    @java.lang.SuppressWarnings("all")
-    public AuthService(final UserRepository userRepository, final UserRoleRepository userRoleRepository, final EventPublisherPort eventPublisherPort, final CachePort cachePort, final ObjectMapper objectMapper) {
-        this.userRepository = userRepository;
-        this.userRoleRepository = userRoleRepository;
-        this.eventPublisherPort = eventPublisherPort;
-        this.cachePort = cachePort;
-        this.objectMapper = objectMapper;
+    private void sendOtp(String phone,OtpPurpose purpose) {
+        limit(purpose==OtpPurpose.ADMIN?RedisKeyConstants.RL_ADMIN_OTP_INITIATE+phone:"RATELIMIT:INITIATE:"+phone,
+            purpose==OtpPurpose.ADMIN?10:initiateWindowMinutes,purpose==OtpPurpose.ADMIN?10:initiateMaxAttempts);
+        String otp=String.format(Locale.ROOT,"%06d",random.nextInt(1_000_000));
+        cache.put(otpKey(phone,purpose),otp,5);events.publishNotificationEvent(phone,"SMS",otp);
     }
+    private void verifyOtp(String phone,String otp,OtpPurpose purpose) {
+        String key=purpose==OtpPurpose.ADMIN?RedisKeyConstants.RL_ADMIN_OTP_VERIFY+phone:"RATELIMIT:VERIFY:"+phone;
+        try {limit(key,purpose==OtpPurpose.ADMIN?5:verifyWindowMinutes,purpose==OtpPurpose.ADMIN?5:verifyMaxAttempts);}
+        catch (ResponseStatusException ex) {cache.delete(otpKey(phone,purpose));throw ex;}
+        String expected=cache.get(otpKey(phone,purpose));
+        if (otp==null || !otp.matches("[0-9]{6}") || expected==null
+            || !MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),otp.getBytes(StandardCharsets.UTF_8)))
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid or expired code");
+    }
+    private void consumeOtp(String phone,String otp,OtpPurpose purpose) {
+        if (!cache.consumeOtp(otpKey(phone,purpose),otp)) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid or expired code");
+    }
+    private void limit(String key,long minutes,int maximum) {
+        Long attempts=cache.increment(key,minutes);
+        if (attempts==null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Authentication is temporarily unavailable");
+        if (attempts>maximum) throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,"Too many attempts; try again later");
+    }
+    private String token(AppUser user,List<RoleName> roles,SessionInfo session) {
+        var now=clock.instant();
+        if (!session.getAbsoluteExpiresAt().isAfter(now)) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Session expired; sign in again");
+        var expiry=now.plusMillis(session.getPurpose()==OtpPurpose.ADMIN?adminLifetime.toMillis():jwtExpirationMs);
+        if (expiry.isAfter(session.getAbsoluteExpiresAt())) expiry=session.getAbsoluteExpiresAt();
+        cache.putVersions(Map.of(RedisKeyConstants.ENTITLEMENTS_VERSION+user.getId(),Long.toString(user.getEntitlementsVersion())),
+            Duration.ofMillis(Math.multiplyExact(2,Math.max(jwtExpirationMs,adminLifetime.toMillis()))));
+        return Jwts.builder().setSubject(user.getId().toString()).claim("phone",user.getPhoneNumber())
+            .claim("roles",roles.stream().map(Enum::name).toList()).claim("sessionId",session.getSessionId())
+            .claim("ev",user.getEntitlementsVersion()).setIssuedAt(Date.from(now)).setExpiration(Date.from(expiry))
+            .signWith(privateKey,SignatureAlgorithm.RS256).compact();
+    }
+    private static String validPhone(String phone) {
+        if (phone==null || !phone.matches("[0-9]{10}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Enter a valid 10-digit phone number");
+        return phone;
+    }
+    private static String otpKey(String phone,OtpPurpose purpose) {return "OTP:"+phone+":"+purpose.name();}
 }

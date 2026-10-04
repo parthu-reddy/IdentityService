@@ -1,194 +1,95 @@
 package com.fooddelivery.identity.service;
 
+import com.fooddelivery.common.enums.RoleName;
 import com.fooddelivery.identity.dto.UserDTO;
-import com.fooddelivery.identity.entity.AppUser;
-import com.fooddelivery.identity.entity.UserRole;
-import com.fooddelivery.identity.repository.UserRepository;
-import com.fooddelivery.identity.repository.UserRoleRepository;
+import com.fooddelivery.identity.entity.*;
+import com.fooddelivery.identity.entitlement.service.*;
+import com.fooddelivery.identity.repository.*;
+import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fooddelivery.common.enums.RoleName;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.transaction.support.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import java.util.*;
 
-@Service
-@lombok.extern.slf4j.Slf4j
+/** Person-wide computed access, with only administrative staff assignments writable. */
+@Service @lombok.RequiredArgsConstructor
 public class InternalUserService {
-    @java.lang.SuppressWarnings("all")
+    private final UserRepository users;
+    private final UserRoleRepository staff;
+    private final AuthService auth;
+    private final EntitlementService entitlements;
+    private final EntitlementVersionPublisher versions;
 
-    private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final AuthService authService;
+    @Transactional(readOnly=true)
+    public UserDTO getUserForAdmin(UUID id) {return toDtos(List.of(requireUser(id))).get(0);}
 
-    @Transactional(readOnly = true)
-    public UserDTO getUser(UUID userId, String serviceName) {
-        AppUser user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        List<UserRole> roles = userRoleRepository.findByUserIdAndServiceName(userId, serviceName);
-        return toUserDto(user, roles);
+    @Transactional(readOnly=true)
+    public UserDTO getUserByPhone(String phone) {
+        if (phone==null || !phone.matches("\\d{10}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"A phone number is the 10 digits used to sign in");
+        var user=users.findByPhoneNumber(phone).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"No user signs in with that number"));
+        return toDtos(List.of(user)).get(0);
     }
 
-    /** Full role view for the administrator-facing user-management surface. */
-    @Transactional(readOnly = true)
-    public UserDTO getUserForAdmin(UUID userId) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return toUserDto(user, userRoleRepository.findByUserId(userId));
-    }
+    @Transactional(readOnly=true)
+    public Page<UserDTO> getUsersByRole(RoleName role,Pageable pageable) {return toPage(users.findWithEntitlement(role.name(),pageable));}
 
-    /**
-     * The user who signs in with this number, with every role they hold. Support looks customers
-     * up this way: the admin search box says "User ID / Phone", and a phone went to GET /{id}.
-     * The login stores the 10 digits the sign-in form sends (AuthForm strips everything else), so
-     * that is the only form looked up; the admin screen normalises what was typed.
-     */
-    @Transactional(readOnly = true)
-    public UserDTO getUserByPhone(String phoneNumber) {
-        if (phoneNumber == null || !phoneNumber.matches("\\d{10}")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A phone number is the 10 digits used to sign in");
-        }
-        AppUser user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No user signs in with that number"));
-        List<RoleName> roleNames = userRoleRepository.findByUserId(user.getId()).stream()
-                .map(UserRole::getRoleName).collect(Collectors.toList());
-        return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber()).isActive(user.isActive()).roles(roleNames).build();
-    }
+    @Transactional(readOnly=true)
+    public Page<UserDTO> getAllUsers(Pageable pageable) {return toPage(users.findAll(pageable));}
 
-    @Transactional(readOnly = true)
-    public List<UserDTO> getUsersByRole(RoleName roleName, String serviceName) {
-        List<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName);
-        return roles.stream().map(role -> toUserDto(role.getUser(), List.of(role))).collect(Collectors.toList());
-    }
+    @Transactional
+    public void updateUserStatus(UUID id,boolean active) {updateUserStatus(id,active,null);}
 
-    @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<UserDTO> getUsersByRole(RoleName roleName, String serviceName, org.springframework.data.domain.Pageable pageable) {
-        org.springframework.data.domain.Page<UserRole> roles = userRoleRepository.findByRoleNameAndServiceName(roleName, serviceName, pageable);
-        return roles.map(role -> toUserDto(role.getUser(), List.of(role)));
-    }
-
-    /**
-     * Role lookup for admins. The portal service name comes from the assignment, never from an
-     * administrator-supplied request header.
-     */
-    @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<UserDTO> getUsersByRole(RoleName roleName,
-                                                                         org.springframework.data.domain.Pageable pageable) {
-        return userRoleRepository.findByRoleName(roleName, pageable)
-                .map(role -> toUserDto(role.getUser(), List.of(role)));
-    }
-
-    @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<UserDTO> getAllUsers(org.springframework.data.domain.Pageable pageable) {
-        return userRepository.findAll(pageable).map(user -> {
-            List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
-            List<RoleName> roleNames = userRoles.stream().map(UserRole::getRoleName).collect(Collectors.toList());
-            return UserDTO.builder()
-                    .id(user.getId())
-                    .phoneNumber(user.getPhoneNumber())
-                    .isActive(user.isActive())
-                    .roles(roleNames)
-                    .build();
-        });
+    @Transactional
+    public void updateUserStatus(UUID id,boolean active,UUID actor) {
+        // Acquire the shared staff lock first for both suspension and privilege removal.
+        var assignments=staff.findByRoleNameForUpdate(RoleName.ADMIN);
+        var user=lockUser(id);
+        if (user.isActive()==active) return;
+        if (!active && assignments.stream().anyMatch(r -> r.getUser().getId().equals(id))) preventAdminLoss(id,actor,assignments);
+        user.setActive(active);users.saveAndFlush(user);versions.bump(List.of(id));revokeAfterCommit(id);
     }
 
     @Transactional
-    public void updateUserStatus(UUID userId, boolean isActive) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        if (user.isActive() != isActive) {
-            user.setActive(isActive);
-            userRepository.save(user);
-            revokeSessionsAfterCommit(userId);
-        }
+    public void addRoleToUser(UUID id,RoleName role) {
+        requireStaffRole(role);staff.findByRoleNameForUpdate(RoleName.ADMIN);
+        var user=lockUser(id);
+        if (staff.findByUserId(id).stream().anyMatch(r -> r.getRoleName()==role)) return;
+        staff.saveAndFlush(UserRole.builder().user(user).roleName(role).build());versions.bump(List.of(id));revokeAfterCommit(id);
     }
 
     @Transactional
-    public void addRoleToUser(UUID userId, RoleName roleName) {
-        AppUser user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        List<UserRole> existingRoles = userRoleRepository.findByUserId(userId);
-        if (existingRoles.stream().noneMatch(r -> r.getRoleName().equals(roleName))) {
-            AuthPortal portal = AuthPortal.forRole(roleName);
-            userRoleRepository.save(UserRole.builder()
-                    .user(user)
-                    .serviceName(portal.canonicalServiceName())
-                    .roleName(roleName)
-                    .build());
-            revokeSessionsAfterCommit(userId);
-        }
-    }
+    public void removeRoleFromUser(UUID id,RoleName role) {removeRoleFromUser(id,role,null);}
 
     @Transactional
-    public void removeRoleFromUser(UUID userId, RoleName roleName) {
-        removeRoleFromUser(userId, roleName, null);
+    public void removeRoleFromUser(UUID id,RoleName role,UUID actor) {
+        requireStaffRole(role);var assignments=staff.findByRoleNameForUpdate(RoleName.ADMIN);lockUser(id);
+        if (assignments.stream().noneMatch(r -> r.getUser().getId().equals(id))) return;
+        preventAdminLoss(id,actor,assignments);staff.deleteByUserIdAndRoleName(id,role);staff.flush();
+        versions.bump(List.of(id));revokeAfterCommit(id);
     }
 
-    @Transactional
-    public void removeRoleFromUser(UUID userId, RoleName roleName, UUID actingUserId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        boolean assigned = userRoleRepository.findByUserId(userId).stream()
-                .anyMatch(role -> role.getRoleName() == roleName);
-        if (assigned) {
-            preventUnsafeAdminRoleRemoval(userId, roleName, actingUserId);
-            // Earlier releases stored a portal role under caller-controlled service names. Remove
-            // every legacy alias so a removed role cannot reappear on a different portal login.
-            userRoleRepository.deleteByUserIdAndRoleName(userId, roleName);
-            revokeSessionsAfterCommit(userId);
-        }
+    private static void requireStaffRole(RoleName role) {
+        if (role!=RoleName.ADMIN) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Portal access is computed from approved applications and organisation membership");
     }
-
-    /**
-     * Lock every ADMIN assignment before deciding whether one may be deleted.  The table permits
-     * legacy service-name aliases, so administrator availability is counted by distinct user id.
-     */
-    private void preventUnsafeAdminRoleRemoval(UUID userId, RoleName roleName, UUID actingUserId) {
-        if (roleName != RoleName.ADMIN) {
-            return;
-        }
-        if (userId.equals(actingUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Administrators cannot remove their own admin role");
-        }
-        Set<UUID> adminUserIds = userRoleRepository.findByRoleNameForUpdate(RoleName.ADMIN).stream()
-                .map(UserRole::getUser)
-                .map(AppUser::getId)
-                .collect(Collectors.toSet());
-        if (adminUserIds.contains(userId) && adminUserIds.size() <= 1) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "At least one administrator must remain assigned");
-        }
+    private static void preventAdminLoss(UUID id,UUID actor,List<UserRole> assignments) {
+        if (id.equals(actor)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Administrators cannot remove their own access");
+        var active=assignments.stream().map(UserRole::getUser).filter(AppUser::isActive).map(AppUser::getId).distinct().toList();
+        if (active.contains(id) && active.size()<=1) throw new ResponseStatusException(HttpStatus.CONFLICT,"At least one active administrator must remain assigned");
     }
-
-    private UserDTO toUserDto(AppUser user, List<UserRole> roles) {
-        List<RoleName> roleNames = roles.stream().map(UserRole::getRoleName).distinct().collect(Collectors.toList());
-        return UserDTO.builder().id(user.getId()).phoneNumber(user.getPhoneNumber())
-                .isActive(user.isActive()).roles(roleNames).build();
+    private AppUser requireUser(UUID id) {return users.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found"));}
+    private AppUser lockUser(UUID id) {return users.lockById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found"));}
+    private List<UserDTO> toDtos(List<AppUser> people) {
+        var computed=entitlements.allRolesFor(people);
+        return people.stream().map(u -> UserDTO.builder().id(u.getId()).phoneNumber(u.getPhoneNumber()).isActive(u.isActive())
+                .roles(computed.getOrDefault(u.getId(),List.of())).build()).toList();
     }
-
-    /** Revoke only after the database change commits, so a rolled-back admin write keeps access. */
-    private void revokeSessionsAfterCommit(UUID userId) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            authService.removeAllSessions(userId);
-            return;
-        }
+    private Page<UserDTO> toPage(Page<AppUser> page) {return new PageImpl<>(toDtos(page.getContent()),page.getPageable(),page.getTotalElements());}
+    private void revokeAfterCommit(UUID id) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {auth.removeAllSessions(id);return;}
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                authService.removeAllSessions(userId);
-            }
+            @Override public void afterCommit() {auth.removeAllSessions(id);}
         });
-    }
-
-    @java.lang.SuppressWarnings("all")
-    public InternalUserService(final UserRepository userRepository, final UserRoleRepository userRoleRepository,
-                               final AuthService authService) {
-        this.userRepository = userRepository;
-        this.userRoleRepository = userRoleRepository;
-        this.authService = authService;
     }
 }

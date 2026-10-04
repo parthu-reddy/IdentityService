@@ -5,4 +5,6 @@ public interface CachePort {
     String get(String key);
     void delete(String key);
     Long increment(String key, long expirationMinutes);
+    void putVersions(java.util.Map<String,String> versions, java.time.Duration ttl);
+    boolean consumeOtp(String key,String expected);
 }

@@ -26,8 +26,6 @@ public class UserDevice {
     private String deviceId;
     @Column(name = "device_model")
     private String deviceModel;
-    @Column(name = "portal")
-    private String portal;
     @CreationTimestamp
     @Column(name = "login_time")
     private Instant loginTime;

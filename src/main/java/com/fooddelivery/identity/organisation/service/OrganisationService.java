@@ -4,6 +4,11 @@ import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
 import com.fooddelivery.identity.organisation.dto.OrganisationViews.*;
 import com.fooddelivery.identity.repository.UserRepository;
+import com.fooddelivery.identity.entitlement.dto.PortalViews.BusinessView;
+import com.fooddelivery.identity.entitlement.entity.BusinessEntitlement;
+import com.fooddelivery.identity.entitlement.repository.BusinessEntitlementRepository;
+import com.fooddelivery.identity.entitlement.service.EntitlementVersionPublisher;
+import com.fooddelivery.identity.entitlement.service.PortalService;
 import com.fooddelivery.common.enums.*;
 import com.fooddelivery.common.constants.*;
 import com.fooddelivery.common.event.organisation.*;
@@ -36,6 +41,8 @@ public class OrganisationService {
     private final OrganisationRateLimits rateLimits;
     private final Clock clock;
     private final MeterRegistry metrics;
+    private final BusinessEntitlementRepository businesses;
+    private final EntitlementVersionPublisher versions;
     @Value("${identity.organisations.max-active-members:200}") private int maxActiveMembers = 200;
 
     public static UUID userId(Authentication auth) {
@@ -73,10 +80,11 @@ public class OrganisationService {
     public Slice<OrganisationView> list(Authentication auth, int page, int size) {
         UUID actor = userId(auth);
         var found = organisations.findForUser(actor, MembershipStatus.ACTIVE, page(page,size));
-        if (found.isEmpty()) { return found.map(o -> view(o,null)); }
+        if (found.isEmpty()) { return found.map(o -> view(o,null,List.of())); }
         var roles = members.findAllByOrganisationIdInAndUserIdAndStatus(found.getContent().stream().map(Organisation::getId).toList(), actor, MembershipStatus.ACTIVE)
             .stream().collect(Collectors.toMap(OrganisationMember::getOrganisationId, OrganisationMember::getRole));
-        return found.map(o -> view(o,roles.get(o.getId())));
+        var businessRows = businessViews(found.getContent().stream().map(Organisation::getId).toList());
+        return found.map(o -> view(o,roles.get(o.getId()),businessRows.getOrDefault(o.getId(),List.of())));
     }
 
     public Slice<MemberView> memberList(Authentication auth, UUID orgId, int page, int size) {
@@ -142,13 +150,16 @@ public class OrganisationService {
         // Flush the demotion before promotion: PostgreSQL's partial unique index is immediate.
         caller.setRole(OrganisationRole.ADMIN); caller.setUpdatedAt(clock.instant()); members.saveAndFlush(caller);
         target.setRole(OrganisationRole.OWNER); target.setUpdatedAt(clock.instant()); members.saveAndFlush(target);
-        membershipChanged(caller,actor); membershipChanged(target,actor);
+        membershipEvent(caller,actor); membershipEvent(target,actor);
+        versions.bump(List.of(actor,targetId));
         audit(actor,"USER",AuditAction.OWNERSHIP_TRANSFERRED,"ORGANISATION",orgId,orgId,null,Map.of("newOwnerId",targetId));
         return view(org,OrganisationRole.ADMIN);
     }
 
     public Slice<OrganisationView> adminList(int page, int size) {
-        return organisations.findAllBy(page(page,size)).map(o -> view(o,null));
+        var found = organisations.findAllBy(page(page,size));
+        var businessRows = businessViews(found.getContent().stream().map(Organisation::getId).toList());
+        return found.map(o -> view(o,null,businessRows.getOrDefault(o.getId(),List.of())));
     }
 
     @Transactional
@@ -161,6 +172,7 @@ public class OrganisationService {
         boolean reinstating=status==OrganisationStatus.ACTIVE && org.getStatus()==OrganisationStatus.SUSPENDED;
         if (!suspending && !reinstating) { throw refusal(HttpStatus.CONFLICT,"Organisation cannot make this transition",id,actor); }
         org.setStatus(status);org.setUpdatedAt(clock.instant());organisations.saveAndFlush(org);
+        versions.bumpOrganisation(id);
         publish(id,EventType.ORGANISATION_STATUS_CHANGED,"org-status:"+id+":"+org.getVersion(),new OrganisationStatusChangedEvent(id,status,reason.trim(),clock.instant()));
         audit(actor,"ADMIN",suspending?AuditAction.ORGANISATION_SUSPENDED:AuditAction.ORGANISATION_REINSTATED,"ORGANISATION",id,id,reason.trim(),Map.of());
         return view(org,null);
@@ -201,6 +213,10 @@ public class OrganisationService {
         }
     }
     void membershipChanged(OrganisationMember member, UUID actor) {
+        membershipEvent(member,actor);
+        versions.bump(List.of(member.getUserId()));
+    }
+    private void membershipEvent(OrganisationMember member, UUID actor) {
         publish(member.getOrganisationId(),EventType.ORGANISATION_MEMBERSHIP_CHANGED,
             "org-member:"+member.getOrganisationId()+":"+member.getUserId()+":"+member.getVersion(),
             new OrganisationMembershipChangedEvent(member.getOrganisationId(),member.getUserId(),
@@ -230,7 +246,19 @@ public class OrganisationService {
         if (name==null || name.trim().isEmpty() || name.trim().length()>120) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Name must contain 1 to 120 characters"); }
         return name.trim();
     }
-    static OrganisationView view(Organisation org,OrganisationRole role) { return new OrganisationView(org.getId(),org.getDisplayName(),org.getStatus(),role,org.getCreatedAt(),org.getUpdatedAt()); }
+    private Map<UUID,List<BusinessView>> businessViews(Collection<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return businesses.findAllByOrganisationIdIn(ids).stream()
+            .sorted(Comparator.comparing(BusinessEntitlement::getBusinessType).thenComparing(BusinessEntitlement::getBusinessId))
+            .collect(Collectors.groupingBy(BusinessEntitlement::getOrganisationId,
+                Collectors.mapping(PortalService::businessView,Collectors.toList())));
+    }
+    private OrganisationView view(Organisation org,OrganisationRole role) {
+        return view(org,role,businessViews(List.of(org.getId())).getOrDefault(org.getId(),List.of()));
+    }
+    private static OrganisationView view(Organisation org,OrganisationRole role,List<BusinessView> items) {
+        return new OrganisationView(org.getId(),org.getDisplayName(),org.getStatus(),role,org.getCreatedAt(),org.getUpdatedAt(),items);
+    }
     static ResponseStatusException refusal(HttpStatus status,String reason,UUID org,UUID user) {
         log.warn("Organisation request refused status={} organisationId={} userId={}",status.value(),org,user);
         return new ResponseStatusException(status,reason);

@@ -340,215 +340,6 @@
         }
       }
     },
-    "/api/v1/internal/auth/verify" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "verifyOtp",
-        "parameters" : [ {
-          "name" : "phoneNumber",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "otp",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-Info",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-OS",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-Browser",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "removeSessionId",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/auth/register" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "registerWithOtp",
-        "parameters" : [ {
-          "name" : "phoneNumber",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "otp",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-Info",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-OS",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Device-Browser",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "removeSessionId",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/auth/logout" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "logout",
-        "parameters" : [ {
-          "name" : "Authorization",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-User-Id",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Session-Id",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/auth/initiate" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "initiateLogin",
-        "parameters" : [ {
-          "name" : "phoneNumber",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/internal/admin/users/{id}/roles" : {
       "post" : {
         "tags" : [ "admin-user-controller" ],
@@ -653,6 +444,144 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OrganisationView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "createSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session/refresh" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "refresh",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/otp" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "initiateLogin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "logout",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/admin-session" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "createAdminSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminSessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/admin-session/otp" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "initiateAdminOtp",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -786,6 +715,24 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MemberView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/portals" : {
+      "get" : {
+        "tags" : [ "portal-controller" ],
+        "operationId" : "portals",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPortalView"
                 }
               }
             }
@@ -979,70 +926,6 @@
         }
       }
     },
-    "/api/v1/internal/auth/sessions" : {
-      "get" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "getActiveSessions",
-        "parameters" : [ {
-          "name" : "X-User-Id",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseListSessionInfo"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "removeAllSessions",
-        "parameters" : [ {
-          "name" : "X-User-Id",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/internal/admin/users/{id}" : {
       "get" : {
         "tags" : [ "admin-user-controller" ],
@@ -1080,7 +963,7 @@
           "required" : true,
           "schema" : {
             "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
           }
         }, {
           "name" : "page",
@@ -1357,6 +1240,40 @@
         }
       }
     },
+    "/api/v1/auth/sessions" : {
+      "get" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "getActiveSessions",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListSessionInfo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "removeAllSessions",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organisations/{organisationId}/invitations/{invitationId}" : {
       "delete" : {
         "tags" : [ "organisation-controller" ],
@@ -1385,46 +1302,6 @@
         }
       }
     },
-    "/api/v1/internal/auth/sessions/{sessionId}" : {
-      "delete" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "removeSession",
-        "parameters" : [ {
-          "name" : "X-User-Id",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "X-Calling-Service",
-          "in" : "header",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "sessionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/internal/admin/users/{id}/roles/{roleName}" : {
       "delete" : {
         "tags" : [ "admin-user-controller" ],
@@ -1443,7 +1320,7 @@
           "required" : true,
           "schema" : {
             "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
           }
         } ],
         "responses" : {
@@ -1453,6 +1330,33 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions/{sessionId}" : {
+      "delete" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "removeSession",
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -1566,6 +1470,26 @@
           }
         }
       },
+      "BusinessView" : {
+        "type" : "object",
+        "properties" : {
+          "businessType" : {
+            "type" : "string",
+            "enum" : [ "RESTAURANT" ]
+          },
+          "businessId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "applicationStatus" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ]
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        }
+      },
       "OrganisationView" : {
         "type" : "object",
         "properties" : {
@@ -1591,6 +1515,12 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "businesses" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BusinessView"
+            }
           }
         }
       },
@@ -1647,6 +1577,108 @@
           "createdAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "organisationName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RoleRequestDTO" : {
+        "required" : [ "roleName" ],
+        "type" : "object",
+        "properties" : {
+          "roleName" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "ADMIN",
+            "type" : "string"
+          }
+        }
+      },
+      "Reason" : {
+        "required" : [ "reason" ],
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "maxLength" : 500,
+            "minLength" : 10,
+            "type" : "string"
+          }
+        }
+      },
+      "SessionRequest" : {
+        "required" : [ "otp", "phoneNumber" ],
+        "type" : "object",
+        "properties" : {
+          "phoneNumber" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          },
+          "otp" : {
+            "pattern" : "[0-9]{6}",
+            "type" : "string"
+          },
+          "deviceInfo" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "os" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "browser" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "replaceSessionId" : {
+            "pattern" : "[0-9a-fA-F-]{36}",
+            "type" : "string"
+          }
+        }
+      },
+      "ApiResponseSessionResponse" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SessionResponse"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SessionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          },
+          "newUser" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "OtpRequest" : {
+        "required" : [ "phoneNumber" ],
+        "type" : "object",
+        "properties" : {
+          "phoneNumber" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
           }
         }
       },
@@ -1672,31 +1704,16 @@
           }
         }
       },
-      "RoleRequestDTO" : {
-        "required" : [ "roleName", "serviceName" ],
+      "AdminSessionRequest" : {
+        "required" : [ "otp" ],
         "type" : "object",
         "properties" : {
-          "serviceName" : {
-            "maxLength" : 50,
-            "minLength" : 0,
-            "pattern" : "^[A-Za-z0-9_\\-]+$",
+          "otp" : {
+            "pattern" : "[0-9]{6}",
             "type" : "string"
           },
-          "roleName" : {
-            "maxLength" : 50,
-            "minLength" : 0,
-            "pattern" : "^[A-Za-z0-9_]+$",
-            "type" : "string"
-          }
-        }
-      },
-      "Reason" : {
-        "required" : [ "reason" ],
-        "type" : "object",
-        "properties" : {
-          "reason" : {
-            "maxLength" : 500,
-            "minLength" : 10,
+          "replaceSessionId" : {
+            "pattern" : "[0-9a-fA-F-]{36}",
             "type" : "string"
           }
         }
@@ -1738,6 +1755,79 @@
           }
         }
       },
+      "ApiResponseListPortalView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PortalView"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "OrganisationPortal" : {
+        "type" : "object",
+        "properties" : {
+          "organisationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ]
+          },
+          "businesses" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BusinessView"
+            }
+          }
+        }
+      },
+      "PortalView" : {
+        "type" : "object",
+        "properties" : {
+          "portal" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "RESTAURANT", "DELIVERY", "ADS", "BUSINESS", "ADMIN" ]
+          },
+          "state" : {
+            "type" : "string",
+            "enum" : [ "AVAILABLE", "PENDING_REVIEW", "ACTION_REQUIRED", "NOT_STARTED", "SUSPENDED", "STEP_UP_REQUIRED", "UNAVAILABLE" ]
+          },
+          "organisations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrganisationPortal"
+            }
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        }
+      },
       "PageableObject" : {
         "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
         "type" : "object",
@@ -1746,28 +1836,34 @@
             "type" : "integer",
             "format" : "int64"
           },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
           "paged" : {
             "type" : "boolean"
           },
-          "pageNumber" : {
-            "type" : "integer",
-            "format" : "int32"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "unpaged" : {
+            "type" : "boolean"
           },
           "pageSize" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "unpaged" : {
-            "type" : "boolean"
+          "pageNumber" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
       "SliceOrganisationView" : {
         "type" : "object",
         "properties" : {
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
@@ -1776,11 +1872,11 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
-          "last" : {
-            "type" : "boolean"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "size" : {
             "type" : "integer",
@@ -1791,12 +1887,6 @@
             "items" : {
               "$ref" : "#/components/schemas/OrganisationView"
             }
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -1821,6 +1911,12 @@
       "SliceMemberView" : {
         "type" : "object",
         "properties" : {
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
@@ -1829,11 +1925,11 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
-          "last" : {
-            "type" : "boolean"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "size" : {
             "type" : "integer",
@@ -1845,12 +1941,6 @@
               "$ref" : "#/components/schemas/MemberView"
             }
           },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "empty" : {
             "type" : "boolean"
           }
@@ -1859,6 +1949,12 @@
       "SliceInvitationView" : {
         "type" : "object",
         "properties" : {
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
@@ -1867,11 +1963,11 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
-          "last" : {
-            "type" : "boolean"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "size" : {
             "type" : "integer",
@@ -1882,12 +1978,6 @@
             "items" : {
               "$ref" : "#/components/schemas/InvitationView"
             }
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -1917,56 +2007,6 @@
           "status" : {
             "type" : "string",
             "enum" : [ "ACTIVE", "REMOVED" ]
-          }
-        }
-      },
-      "ApiResponseListSessionInfo" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SessionInfo"
-            }
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SessionInfo" : {
-        "required" : [ "browser", "deviceInfo", "lastActive", "os", "serviceName", "sessionId" ],
-        "type" : "object",
-        "properties" : {
-          "sessionId" : {
-            "type" : "string"
-          },
-          "deviceInfo" : {
-            "type" : "string"
-          },
-          "os" : {
-            "type" : "string"
-          },
-          "browser" : {
-            "type" : "string"
-          },
-          "lastActive" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "serviceName" : {
-            "type" : "string"
           }
         }
       },
@@ -2007,7 +2047,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN" ]
+              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
             }
           },
           "active" : {
@@ -2109,7 +2149,7 @@
           },
           "action" : {
             "type" : "string",
-            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_SUBMITTED", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED" ]
+            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED" ]
           },
           "subjectType" : {
             "type" : "string"
@@ -2139,6 +2179,12 @@
       "SliceAuditEvent" : {
         "type" : "object",
         "properties" : {
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
@@ -2147,11 +2193,11 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
-          "last" : {
-            "type" : "boolean"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "size" : {
             "type" : "integer",
@@ -2163,14 +2209,67 @@
               "$ref" : "#/components/schemas/AuditEvent"
             }
           },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "empty" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseListSessionInfo" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SessionInfo"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SessionInfo" : {
+        "required" : [ "absoluteExpiresAt", "browser", "createdAt", "deviceInfo", "lastActive", "os", "purpose", "sessionId" ],
+        "type" : "object",
+        "properties" : {
+          "sessionId" : {
+            "type" : "string"
+          },
+          "deviceInfo" : {
+            "type" : "string"
+          },
+          "os" : {
+            "type" : "string"
+          },
+          "browser" : {
+            "type" : "string"
+          },
+          "lastActive" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "purpose" : {
+            "type" : "string",
+            "enum" : [ "LOGIN", "ADMIN" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "absoluteExpiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       }

@@ -2,7 +2,7 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.port.CachePort;
-import com.fooddelivery.identity.service.AuthPortal;
+import com.fooddelivery.identity.service.OtpPurpose;
 import com.fooddelivery.identity.service.DevOtpAccessPolicy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -22,13 +22,13 @@ import org.springframework.web.server.ResponseStatusException;
  * not verify the OTP, create a session, provision an account, or assign an application role.
  */
 @RestController
-@RequestMapping("/api/v1/internal/auth/admin")
+@RequestMapping("/api/v1/auth/dev")
 @Profile("dev & !prod")
 @ConditionalOnProperty(prefix = "dev.otp", name = "enabled", havingValue = "true")
 @PreAuthorize("permitAll()")
 public class DevOtpController {
 
-    public static final String OTP_LOOKUP_PATH = "/api/v1/internal/auth/admin/otp";
+    public static final String OTP_LOOKUP_PATH = "/api/v1/auth/dev/otp";
 
     private final CachePort cachePort;
     private final DevOtpAccessPolicy accessPolicy;
@@ -40,14 +40,13 @@ public class DevOtpController {
 
     @GetMapping("/otp")
     public ResponseEntity<ApiResponse<String>> getOtp(
-            @RequestParam String phoneNumber, @RequestParam String serviceName) {
-        AuthPortal portal = AuthPortal.fromCallerService(serviceName);
-        if (!accessPolicy.allows(phoneNumber, portal)) {
+            @RequestParam String phoneNumber, @RequestParam OtpPurpose purpose) {
+        if (!accessPolicy.allows(phoneNumber, purpose)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Dev autofill requires a valid 10-digit number; administrator numbers must be allowlisted");
         }
 
-        String otp = cachePort.get("OTP:" + phoneNumber + ":" + portal.sessionServiceName());
+        String otp = cachePort.get("OTP:" + phoneNumber + ":" + purpose.name());
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.PRAGMA, "no-cache")

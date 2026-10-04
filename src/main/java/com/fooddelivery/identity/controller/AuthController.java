@@ -1,146 +1,72 @@
 package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
-import com.fooddelivery.identity.service.AuthService;
-import com.fooddelivery.identity.service.AuthPortal;
-import com.fooddelivery.identity.service.DevOtpAccessPolicy;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import java.util.List;
-import java.util.UUID;
+import com.fooddelivery.identity.dto.AuthRequests.*;
 import com.fooddelivery.identity.dto.SessionInfo;
+import com.fooddelivery.identity.organisation.service.OrganisationService;
+import com.fooddelivery.identity.service.*;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import jakarta.validation.Valid;
+import java.util.*;
 
-@RestController
-@RequestMapping("/api/v1/internal/auth")
-@lombok.extern.slf4j.Slf4j
+@RestController @RequestMapping("/api/v1/auth") @lombok.RequiredArgsConstructor
 public class AuthController {
-    @java.lang.SuppressWarnings("all")
+    private final AuthService auth;
+    private final ObjectProvider<DevOtpAccessPolicy> devPolicy;
 
-    private final AuthService authService;
-    private final com.fooddelivery.common.service.RateLimitingService rateLimitingService;
-
-    @Autowired
-    private ObjectProvider<DevOtpAccessPolicy> devOtpAccessPolicy;
-
-    @Value("${identity.auth.bucket.capacity:10}")
-    private int authBucketCapacity = 10;
-
-    @Value("${identity.auth.bucket.refill-tokens:10}")
-    private int authBucketRefillTokens = 10;
-
-    @Value("${identity.auth.bucket.refill-duration:PT1M}")
-    private java.time.Duration authBucketRefillDuration = java.time.Duration.ofMinutes(1);
-
-    private boolean isRateLimited(String clientKey) {
-        if (clientKey == null || clientKey.isBlank() || clientKey.equals("unknown")) return true;
-        io.github.bucket4j.Bucket bucket = rateLimitingService.resolveBucket(
-                "auth:" + clientKey,
-                authBucketCapacity,
-                authBucketRefillTokens,
-                authBucketRefillDuration);
-        return !bucket.tryConsume(1);
+    @PostMapping("/otp") @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<Void>> initiateLogin(@Valid @RequestBody OtpRequest request) {
+        auth.initiateLogin(request.phoneNumber());
+        var builder=ResponseEntity.ok().cacheControl(CacheControl.noStore());
+        var policy=devPolicy.getIfAvailable();
+        if (policy!=null && policy.allows(request.phoneNumber(),OtpPurpose.LOGIN)) builder.header(DevOtpAccessPolicy.AVAILABILITY_HEADER,"true");
+        return builder.body(ApiResponse.success(null,"Code sent"));
     }
-
-    @PostMapping("/initiate")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<String>> initiateLogin(@RequestParam String phoneNumber, @RequestHeader("X-Calling-Service") String serviceName) {
-        if (isRateLimited(phoneNumber)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
-        }
-        authService.initiateLogin(phoneNumber, serviceName);
-        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
-        DevOtpAccessPolicy devPolicy = devOtpAccessPolicy == null ? null : devOtpAccessPolicy.getIfAvailable();
-        if (devPolicy != null && devPolicy.allows(phoneNumber, AuthPortal.fromCallerService(serviceName))) {
-            response.header(DevOtpAccessPolicy.AVAILABILITY_HEADER, "true");
-        }
-        return response.body(ApiResponse.success(null, "OTP sent successfully"));
+    @PostMapping("/session") @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<SessionResponse>> createSession(@Valid @RequestBody SessionRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(auth.createSession(request),"Signed in"));
     }
-
-    @PostMapping("/verify")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<String>> verifyOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
-        if (isRateLimited(phoneNumber)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
-        }
-        String token = authService.verifyOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId);
-        return ResponseEntity.ok(ApiResponse.success(token, "Login successful"));
+    @PostMapping("/session/refresh") @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<SessionResponse>> refresh(Authentication caller) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(auth.refresh(OrganisationService.userId(caller),sid(caller)),"Session refreshed"));
     }
-
-    @PostMapping("/register")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<String>> registerWithOtp(@RequestParam String phoneNumber, @RequestParam String otp, @RequestHeader("X-Calling-Service") String serviceName, @RequestHeader(value = "X-Device-Info", required = false) String deviceInfo, @RequestHeader(value = "X-Device-OS", required = false) String os, @RequestHeader(value = "X-Device-Browser", required = false) String browser, @RequestParam(value = "removeSessionId", required = false) String removeSessionId) {
-        if (isRateLimited(phoneNumber)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS).build();
-        }
-        String token = authService.registerWithOtp(phoneNumber, otp, serviceName, deviceInfo, os, browser, removeSessionId);
-        return ResponseEntity.ok(ApiResponse.success(token, "Registration successful"));
+    @PostMapping("/admin-session/otp") @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> initiateAdminOtp(Authentication caller) {
+        auth.initiateAdminOtp(OrganisationService.userId(caller),sid(caller));
+        var builder=ResponseEntity.ok().cacheControl(CacheControl.noStore());
+        var policy=devPolicy.getIfAvailable();
+        if (policy!=null && caller.getDetails() instanceof Map<?,?> details
+                && policy.allows(Objects.toString(details.get("phone"),null),OtpPurpose.ADMIN)) builder.header(DevOtpAccessPolicy.AVAILABILITY_HEADER,"true");
+        return builder.body(ApiResponse.success(null,"Administrator code sent"));
     }
-
-    @PostMapping("/logout")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String token, @RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
-        boolean loggedOut = false;
-        // Primary: use gateway-injected headers (already validated by the gateway)
-        if (userId != null && !userId.isEmpty() && sessionId != null && !sessionId.isEmpty()) {
-            authService.removeSession(java.util.UUID.fromString(userId), sessionId);
-            loggedOut = true;
-        }
-        // Fallback: parse the token directly if gateway headers were missing
-        if (!loggedOut && token != null && token.startsWith("Bearer ")) {
-            try {
-                authService.logout(token.substring(7));
-            } catch (Exception e) {
-                // Log but don't fail — the logout response should always be 200
-                log.warn("Token-based logout failed, session may already be removed", e);
-            }
-        }
-        return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
+    @PostMapping("/admin-session") @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<SessionResponse>> createAdminSession(Authentication caller,@Valid @RequestBody AdminSessionRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(auth.createAdminSession(OrganisationService.userId(caller),sid(caller),request),"Administrator session issued"));
     }
-
-    @GetMapping("/sessions")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<SessionInfo>>> getActiveSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
-        if (userId != null && !userId.isEmpty()) {
-            List<SessionInfo> sessions = authService.getUserSessions(UUID.fromString(userId));
-            return ResponseEntity.ok(ApiResponse.success(sessions, "Sessions retrieved successfully"));
-        }
-        return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+    @PostMapping("/logout") @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> logout(Authentication caller) {
+        auth.logout(OrganisationService.userId(caller),sid(caller));return ApiResponse.success(null,"Signed out");
     }
-
-    @DeleteMapping("/sessions/{sessionId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> removeSession(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService, @PathVariable String sessionId) {
-        if (userId != null && !userId.isEmpty()) {
-            authService.removeSession(UUID.fromString(userId), sessionId);
-            return ResponseEntity.ok(ApiResponse.success(null, "Session removed successfully"));
-        }
-        return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+    @GetMapping("/sessions") @PreAuthorize("isAuthenticated()")
+    public ApiResponse<List<SessionInfo>> getActiveSessions(Authentication caller) {
+        return ApiResponse.success(auth.getUserSessions(OrganisationService.userId(caller)),"Active sessions");
     }
-
-    @DeleteMapping("/sessions")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> removeAllSessions(@RequestHeader(value = com.fooddelivery.common.constants.HeaderConstants.HEADER_USER_ID, required = false) String userId, @RequestHeader(value = "X-Calling-Service", required = false) String callingService) {
-        if (userId != null && !userId.isEmpty()) {
-            authService.removeAllSessions(UUID.fromString(userId));
-            return ResponseEntity.ok(ApiResponse.success(null, "All sessions removed successfully"));
-        }
-        return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+    @DeleteMapping("/sessions/{sessionId}") @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> removeSession(Authentication caller,@PathVariable UUID sessionId) {
+        auth.removeSession(OrganisationService.userId(caller),sessionId.toString());return ApiResponse.success(null,"Session removed");
     }
-
-    @java.lang.SuppressWarnings("all")
-    public AuthController(final AuthService authService, final com.fooddelivery.common.service.RateLimitingService rateLimitingService) {
-        this.authService = authService;
-        this.rateLimitingService = rateLimitingService;
+    @DeleteMapping("/sessions") @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> removeAllSessions(Authentication caller) {
+        auth.removeAllSessions(OrganisationService.userId(caller));return ApiResponse.success(null,"Sessions removed");
+    }
+    private static String sid(Authentication caller) {
+        // SecurityContextFilter includes the session in its verified mesh signature.
+        if (caller!=null && caller.getDetails() instanceof Map<?,?> details && details.get("sessionId") instanceof String sid && !sid.isBlank()) return sid;
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"A person session is required");
     }
 }
