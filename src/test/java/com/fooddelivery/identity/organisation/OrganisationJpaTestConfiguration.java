@@ -25,7 +25,8 @@ import java.time.*;
 @EnableAutoConfiguration
 @EntityScan(basePackageClasses={AppUser.class,Organisation.class,OutboxEventEntity.class,AuditEvent.class,BusinessEntitlement.class})
 @EnableJpaRepositories(basePackageClasses={UserRepository.class,OrganisationRepository.class,OutboxEventRepository.class,BusinessEntitlementRepository.class})
-@Import({OrganisationService.class,OrganisationInvitationService.class,AuditTrail.class,AuditReader.class,EntitlementVersionPublisher.class})
+@Import({OrganisationService.class,OrganisationInvitationService.class,AuditTrail.class,AuditReader.class,EntitlementVersionPublisher.class,
+    com.fooddelivery.identity.adapter.OutboxEventPublisherAdapter.class})
 class OrganisationJpaTestConfiguration {
     @Bean Clock clock(){return Clock.fixed(Instant.parse("2026-10-03T10:00:00Z"),ZoneOffset.UTC);}
     @Bean ObjectMapper objectMapper(){return new ObjectMapper().findAndRegisterModules();}

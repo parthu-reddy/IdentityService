@@ -97,6 +97,30 @@ class OrganisationPersistenceTest {
         var transfer=history.stream().filter(a -> a.getAction()==AuditAction.OWNERSHIP_TRANSFERRED).findFirst().orElseThrow();
         assertEquals(next.toString(),transfer.getDetails().get("newOwnerId").toString());
     }
+    @Test void invitationSmsIsStoredOnceInTheInviteTransactionWithoutUserEnteredText(){
+        UUID owner=user("8999000111");
+        var org=service.create(auth(owner),"Visit evil.example now");
+        var unknown=invitations.invite(auth(owner),org.id(),"8999000112",OrganisationRole.MANAGER);
+        var rows=outbox.findAll().stream().filter(e -> ("organisation-invitation:"+unknown.id()).equals(e.getIdempotencyKey())).toList();
+        assertEquals(1,rows.size());
+        var payload=rows.get(0).getPayload();
+        assertEquals(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST,rows.get(0).getEventType());
+        assertTrue(payload.contains("\"explicitRecipient\":\"8999000112\""));
+        assertTrue(payload.contains("ORGANISATION_INVITATION"));
+        assertTrue(payload.contains("a manager"));
+        assertTrue(payload.contains("\"userId\":null"));
+        assertFalse(payload.contains("evil.example"),"organisation names are user-entered and never reach the SMS");
+
+        UUID existing=user("8999000113");
+        var known=invitations.invite(auth(owner),org.id(),"8999000113",OrganisationRole.STAFF);
+        var knownPayload=outbox.findAll().stream().filter(e -> ("organisation-invitation:"+known.id()).equals(e.getIdempotencyKey())).findFirst().orElseThrow().getPayload();
+        assertTrue(knownPayload.contains("\"userId\":\""+existing+"\""),"an existing account keeps its channel preferences");
+
+        long before=outbox.count();
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+            () -> invitations.invite(auth(owner),org.id(),"8999000112",OrganisationRole.STAFF));
+        assertEquals(before,outbox.count(),"a refused duplicate invitation sends nothing");
+    }
     @Test void expiredAcceptanceCommitsExpiryButNeverAddsMembership(){
         UUID owner=user("8999000105"),invitee=user("8999000106");
         var org=service.create(auth(owner),"Expired invitation");

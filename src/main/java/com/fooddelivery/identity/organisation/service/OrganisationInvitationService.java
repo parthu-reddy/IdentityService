@@ -23,6 +23,7 @@ public class OrganisationInvitationService {
     private final UserRepository users;
     private final OrganisationRateLimits rateLimits;
     private final Clock clock;
+    private final com.fooddelivery.identity.port.EventPublisherPort events;
 
     @Transactional
     public InvitationView invite(Authentication auth,UUID orgId,String phone,OrganisationRole role) {
@@ -50,6 +51,8 @@ public class OrganisationInvitationService {
             .phoneNumber(phone).role(role).status(InvitationStatus.PENDING).invitedBy(actor)
             .expiresAt(now.plus(Duration.ofDays(7))).createdAt(now).updatedAt(now).build());
         organisationService.audit(actor,"USER",AuditAction.MEMBER_INVITED,"INVITATION",invite.getId(),orgId,null,Map.of());
+        // Same transaction: the SMS is sent only if the invitation commits, and at most once per invitation.
+        events.publishOrganisationInvitation(invite.getId(),phone,known.map(com.fooddelivery.identity.entity.AppUser::getId).orElse(null),role);
         organisationService.invitationMetric("created"); return view(invite,organisation.getDisplayName());
     }
 

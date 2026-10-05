@@ -32,6 +32,7 @@ class OrganisationControllerAuthorizationTest {
     @MockBean com.fooddelivery.common.outbox.repository.OutboxEventRepository outbox;
     @MockBean com.fooddelivery.common.audit.AuditTrail audit;
     @MockBean OrganisationRateLimits limits;
+    @MockBean com.fooddelivery.identity.port.EventPublisherPort events;
     @MockBean Clock clock;@MockBean io.micrometer.core.instrument.MeterRegistry registry;
     @MockBean com.fooddelivery.common.security.SecurityContextFilter identityFilter;
     UUID org=UUID.randomUUID(),actor=UUID.randomUUID();

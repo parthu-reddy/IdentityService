@@ -40,6 +40,44 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
         }
     }
 
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void publishOrganisationInvitation(UUID invitationId, String phoneNumber, UUID existingUserId,
+                                              com.fooddelivery.common.enums.OrganisationRole role) {
+        NotificationRequestEvent event = NotificationRequestEvent.builder()
+                .eventId("organisation-invitation:" + invitationId)
+                .userId(existingUserId)
+                .explicitRecipient(phoneNumber)
+                .channel(com.fooddelivery.common.enums.ChannelType.SMS)
+                .eventName(com.fooddelivery.common.constants.NotificationTemplate.ORGANISATION_INVITATION)
+                .templateParams(java.util.List.of(roleLabel(role)))
+                .payload(java.util.Map.of("invitationId", invitationId.toString(), "role", role.name()))
+                .build();
+        try {
+            outboxEventRepository.save(OutboxEventEntity.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
+                    .aggregateId(invitationId.toString())
+                    .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
+                    .idempotencyKey(event.getEventId())
+                    .payload(objectMapper.writeValueAsString(event))
+                    .createdAt(java.time.Instant.now())
+                    .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
+                    .build());
+        } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
+            throw new IllegalStateException("Invitation notification could not be stored", failure);
+        }
+    }
+
+    static String roleLabel(com.fooddelivery.common.enums.OrganisationRole role) {
+        return switch (role) {
+            case OWNER -> "an owner";
+            case ADMIN -> "an admin";
+            case MANAGER -> "a manager";
+            case STAFF -> "a staff member";
+        };
+    }
+
     @java.lang.SuppressWarnings("all")
     public OutboxEventPublisherAdapter(final OutboxEventRepository outboxEventRepository, final ObjectMapper objectMapper) {
         this.outboxEventRepository = outboxEventRepository;

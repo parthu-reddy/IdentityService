@@ -30,6 +30,7 @@ class OrganisationServiceTest {
     OrganisationRepository orgs;OrganisationMemberRepository members;OrganisationInvitationRepository invitations;
     UserRepository users;OutboxEventRepository outbox;AuditTrail audit;OrganisationRateLimits limits;
     OrganisationService service;OrganisationInvitationService invites;Organisation org;
+    com.fooddelivery.identity.port.EventPublisherPort events;
     EntitlementVersionPublisher versions;
     Authentication auth(UUID id){return new UsernamePasswordAuthenticationToken(id.toString(),null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER")));}
     OrganisationMember member(UUID id,OrganisationRole role){return OrganisationMember.builder().id(UUID.randomUUID()).organisationId(orgId).userId(id).role(role).status(MembershipStatus.ACTIVE).createdAt(now).updatedAt(now).version(1L).build();}
@@ -39,7 +40,8 @@ class OrganisationServiceTest {
         Clock clock=Clock.fixed(now,ZoneOffset.UTC);
         versions=mock(EntitlementVersionPublisher.class);
         service=new OrganisationService(orgs,members,invitations,users,outbox,new ObjectMapper().findAndRegisterModules(),audit,limits,clock,new SimpleMeterRegistry(),mock(BusinessEntitlementRepository.class),versions);
-        invites=new OrganisationInvitationService(service,invitations,orgs,members,users,limits,clock);
+        events=mock(com.fooddelivery.identity.port.EventPublisherPort.class);
+        invites=new OrganisationInvitationService(service,invitations,orgs,members,users,limits,clock,events);
         org=Organisation.builder().id(orgId).displayName("Brand").status(OrganisationStatus.ACTIVE).createdBy(owner).createdAt(now).updatedAt(now).version(1L).build();
         when(orgs.findById(orgId)).thenReturn(Optional.of(org));when(orgs.lockById(orgId)).thenReturn(Optional.of(org));
         when(members.existsByOrganisationIdAndUserIdAndStatus(eq(orgId),any(),eq(MembershipStatus.ACTIVE))).thenReturn(true);
@@ -91,4 +93,11 @@ class OrganisationServiceTest {
     @Test void acceptReactivatesMemberAndEmitsEvent(){var i=pending("8999000002");var removed=member(other,OrganisationRole.MANAGER);removed.setStatus(MembershipStatus.REMOVED);when(members.findByOrganisationIdAndUserId(orgId,other)).thenReturn(Optional.of(removed));assertEquals(InvitationStatus.ACCEPTED,invites.respond(auth(other),i.getId(),true).status());assertEquals(OrganisationRole.STAFF,removed.getRole());assertEquals(MembershipStatus.ACTIVE,removed.getStatus());verify(outbox).save(any());verify(limits).respond(other);}
     @Test void removedInviterCannotStillGrantAccess(){var i=pending("8999000002");when(members.findByOrganisationIdAndUserId(orgId,owner)).thenReturn(Optional.empty());refuses(404,()->invites.respond(auth(other),i.getId(),true));verify(members,never()).saveAndFlush(any());}
     @Test void invitingUnknownAccountHasSameResponseShape(){var unknown=invites.invite(auth(owner),orgId,"8999000003",OrganisationRole.STAFF);assertEquals(InvitationStatus.PENDING,unknown.status());verify(limits).invite(orgId,owner);}
+    @Test void invitationNotifiesThePhoneOnceAndRefusalsNotifyNoOne(){
+        var invite=invites.invite(auth(owner),orgId,"8999000003",OrganisationRole.STAFF);
+        verify(events).publishOrganisationInvitation(invite.id(),"8999000003",null,OrganisationRole.STAFF);
+        when(invitations.existsByOrganisationIdAndPhoneNumberAndStatus(orgId,"8999000004",InvitationStatus.PENDING)).thenReturn(true);
+        refuses(409,()->invites.invite(auth(owner),orgId,"8999000004",OrganisationRole.STAFF));
+        verifyNoMoreInteractions(events);
+    }
 }
