@@ -135,7 +135,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SliceOrganisationView"
+                  "$ref" : "#/components/schemas/ApiResponseSliceOrganisationView"
                 }
               }
             }
@@ -161,7 +161,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
                 }
               }
             }
@@ -198,7 +198,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
                 }
               }
             }
@@ -243,7 +243,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SliceInvitationView"
+                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
                 }
               }
             }
@@ -278,7 +278,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InvitationView"
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
                 }
               }
             }
@@ -305,7 +305,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InvitationView"
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
                 }
               }
             }
@@ -332,7 +332,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InvitationView"
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
                 }
               }
             }
@@ -608,7 +608,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
                 }
               }
             }
@@ -643,7 +643,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
                 }
               }
             }
@@ -674,7 +674,14 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
           }
         }
       },
@@ -714,7 +721,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MemberView"
+                  "$ref" : "#/components/schemas/ApiResponseMemberView"
                 }
               }
             }
@@ -777,7 +784,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SliceMemberView"
+                  "$ref" : "#/components/schemas/ApiResponseSliceMemberView"
                 }
               }
             }
@@ -814,7 +821,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SliceInvitationView"
+                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
                 }
               }
             }
@@ -1297,7 +1304,14 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
           }
         }
       }
@@ -1470,6 +1484,28 @@
           }
         }
       },
+      "ApiResponseOrganisationView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/OrganisationView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "BusinessView" : {
         "type" : "object",
         "properties" : {
@@ -1545,6 +1581,28 @@
           "role" : {
             "type" : "string",
             "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
+          }
+        }
+      },
+      "ApiResponseInvitationView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/InvitationView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },
@@ -1728,6 +1786,28 @@
           }
         }
       },
+      "ApiResponseMemberView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/MemberView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "MemberView" : {
         "type" : "object",
         "properties" : {
@@ -1828,10 +1908,36 @@
           }
         }
       },
+      "ApiResponseSliceOrganisationView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SliceOrganisationView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "PageableObject" : {
         "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
         "type" : "object",
         "properties" : {
+          "offset" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "paged" : {
             "type" : "boolean"
           },
@@ -1848,10 +1954,6 @@
           "pageNumber" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
           }
         }
       },
@@ -1861,12 +1963,6 @@
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "number" : {
             "type" : "integer",
@@ -1881,6 +1977,12 @@
             "items" : {
               "$ref" : "#/components/schemas/OrganisationView"
             }
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"
@@ -1908,18 +2010,34 @@
           }
         }
       },
+      "ApiResponseSliceMemberView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SliceMemberView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "SliceMemberView" : {
         "type" : "object",
         "properties" : {
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "number" : {
             "type" : "integer",
@@ -1935,6 +2053,12 @@
               "$ref" : "#/components/schemas/MemberView"
             }
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
           "first" : {
             "type" : "boolean"
           },
@@ -1946,18 +2070,34 @@
           }
         }
       },
+      "ApiResponseSliceInvitationView" : {
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/SliceInvitationView"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "SliceInvitationView" : {
         "type" : "object",
         "properties" : {
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "number" : {
             "type" : "integer",
@@ -1972,6 +2112,12 @@
             "items" : {
               "$ref" : "#/components/schemas/InvitationView"
             }
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"
@@ -2183,12 +2329,6 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
@@ -2202,6 +2342,12 @@
             "items" : {
               "$ref" : "#/components/schemas/AuditEvent"
             }
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"

@@ -42,6 +42,15 @@ class OrganisationControllerAuthorizationTest {
         when(members.existsByOrganisationIdAndUserIdAndStatus(org,actor,MembershipStatus.ACTIVE)).thenReturn(true);
     }
     void role(OrganisationRole role){when(members.findByOrganisationIdAndUserId(org,actor)).thenReturn(Optional.of(OrganisationMember.builder().organisationId(org).userId(actor).status(MembershipStatus.ACTIVE).role(role).build()));}
+    @Test void memberResponsesUseThePlatformEnvelope() throws Exception {
+        role(OrganisationRole.OWNER);
+        when(orgs.findById(org)).thenReturn(Optional.of(Organisation.builder().id(org).displayName("Team").status(OrganisationStatus.ACTIVE).build()));
+        mvc.perform(get("/api/v1/organisations/" + org).with(user(actor.toString()).roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(org.toString()))
+                .andExpect(jsonPath("$.data.myRole").value("OWNER"));
+    }
     @Test void nonmemberGets404() throws Exception {mvc.perform(get("/api/v1/organisations/"+org).with(user(actor.toString()).roles("CUSTOMER"))).andExpect(status().isNotFound());}
     @Test void staffCannotInvite() throws Exception {role(OrganisationRole.STAFF);mvc.perform(post("/api/v1/organisations/"+org+"/invitations").with(user(actor.toString()).roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"phoneNumber\":\"8999000001\",\"role\":\"STAFF\"}")).andExpect(status().isForbidden());}
     @Test void managerCannotChangeRoles() throws Exception {role(OrganisationRole.MANAGER);mvc.perform(patch("/api/v1/organisations/"+org+"/members/"+UUID.randomUUID()).with(user(actor.toString()).roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"STAFF\"}")).andExpect(status().isForbidden());}

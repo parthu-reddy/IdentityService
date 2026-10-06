@@ -2,8 +2,9 @@ package com.fooddelivery.identity.controller;
 
 import com.fooddelivery.common.dto.ApiResponse;
 import com.fooddelivery.identity.port.CachePort;
-import com.fooddelivery.identity.service.OtpPurpose;
 import com.fooddelivery.identity.service.DevOtpAccessPolicy;
+import com.fooddelivery.identity.service.OtpPurpose;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.CacheControl;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Dev Autofill Code uses the real, current OTP for a development login; only administrator numbers are allowlisted. It does
- * not verify the OTP, create a session, provision an account, or assign an application role.
+ * Dev Autofill Code uses the real, current OTP for a development login; only administrator numbers
+ * are allowlisted. It does not verify the OTP, create a session, provision an account, or assign an
+ * application role.
  */
 @RestController
 @RequestMapping("/api/v1/auth/dev")
@@ -42,15 +44,21 @@ public class DevOtpController {
     public ResponseEntity<ApiResponse<String>> getOtp(
             @RequestParam String phoneNumber, @RequestParam OtpPurpose purpose) {
         if (!accessPolicy.allows(phoneNumber, purpose)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Dev autofill requires a valid 10-digit number; administrator numbers must be allowlisted");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Dev autofill requires a valid 10-digit number; administrator numbers must be"
+                        + " allowlisted");
         }
 
         String otp = cachePort.get("OTP:" + phoneNumber + ":" + purpose.name());
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.PRAGMA, "no-cache")
-                .body(ApiResponse.success(otp,
-                        otp == null ? "No active OTP found for this number" : "OTP retrieved successfully"));
+                .body(
+                        ApiResponse.success(
+                                otp,
+                                otp == null
+                                        ? "No active OTP found for this number"
+                                        : "OTP retrieved successfully"));
     }
 }
