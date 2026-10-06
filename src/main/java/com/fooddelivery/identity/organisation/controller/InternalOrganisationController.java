@@ -1,7 +1,9 @@
 package com.fooddelivery.identity.organisation.controller;
 
 import com.fooddelivery.common.dto.organisation.MembershipDto;
+import com.fooddelivery.common.dto.organisation.OrganisationBusinessDto;
 import com.fooddelivery.common.enums.OrganisationPermission;
+import com.fooddelivery.identity.entitlement.service.OrganisationBusinessQuery;
 import com.fooddelivery.identity.organisation.service.LocalOrganisationAccessPolicy;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +17,7 @@ import java.util.*;
 @lombok.RequiredArgsConstructor
 public class InternalOrganisationController {
     private final LocalOrganisationAccessPolicy service;
+    private final OrganisationBusinessQuery businesses;
 
     @GetMapping("/{organisationId}/members/{userId}")
     public MembershipDto membership(@PathVariable UUID organisationId, @PathVariable UUID userId) {
@@ -25,5 +28,10 @@ public class InternalOrganisationController {
     public List<UUID> members(
             @PathVariable UUID organisationId, @RequestParam OrganisationPermission permission) {
         return service.memberIds(organisationId, permission);
+    }
+
+    @GetMapping("/{organisationId}/businesses")
+    public List<OrganisationBusinessDto> businesses(@PathVariable UUID organisationId) {
+        return businesses.of(organisationId);
     }
 }

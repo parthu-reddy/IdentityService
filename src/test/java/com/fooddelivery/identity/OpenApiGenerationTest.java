@@ -81,6 +81,9 @@ import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 public class OpenApiGenerationTest {
 
     @org.springframework.boot.test.mock.mockito.MockBean
+    private com.fooddelivery.identity.entitlement.service.OrganisationBusinessQuery organisationBusinessQuery;
+
+    @org.springframework.boot.test.mock.mockito.MockBean
     private com.fooddelivery.identity.repository.UserRepository userRepository;
 
 

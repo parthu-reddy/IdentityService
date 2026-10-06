@@ -933,6 +933,36 @@
         }
       }
     },
+    "/api/v1/internal/organisations/{organisationId}/businesses" : {
+      "get" : {
+        "tags" : [ "internal-organisation-controller" ],
+        "operationId" : "businesses",
+        "parameters" : [ {
+          "name" : "organisationId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrganisationBusinessDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/internal/admin/users/{id}" : {
       "get" : {
         "tags" : [ "admin-user-controller" ],
@@ -1934,35 +1964,41 @@
         "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
         "type" : "object",
         "properties" : {
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "paged" : {
             "type" : "boolean"
           },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "unpaged" : {
-            "type" : "boolean"
+          "pageNumber" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "pageSize" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageNumber" : {
+          "unpaged" : {
+            "type" : "boolean"
+          },
+          "offset" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int64"
           }
         }
       },
       "SliceOrganisationView" : {
         "type" : "object",
         "properties" : {
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "number" : {
             "type" : "integer",
@@ -1977,12 +2013,6 @@
             "items" : {
               "$ref" : "#/components/schemas/OrganisationView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"
@@ -2035,9 +2065,15 @@
       "SliceMemberView" : {
         "type" : "object",
         "properties" : {
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "number" : {
             "type" : "integer",
@@ -2052,12 +2088,6 @@
             "items" : {
               "$ref" : "#/components/schemas/MemberView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"
@@ -2095,9 +2125,15 @@
       "SliceInvitationView" : {
         "type" : "object",
         "properties" : {
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "number" : {
             "type" : "integer",
@@ -2112,12 +2148,6 @@
             "items" : {
               "$ref" : "#/components/schemas/InvitationView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"
@@ -2153,6 +2183,24 @@
           "status" : {
             "type" : "string",
             "enum" : [ "ACTIVE", "REMOVED" ]
+          }
+        }
+      },
+      "OrganisationBusinessDto" : {
+        "required" : [ "applicationStatus", "businessId", "businessType" ],
+        "type" : "object",
+        "properties" : {
+          "businessType" : {
+            "type" : "string",
+            "enum" : [ "RESTAURANT" ]
+          },
+          "businessId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "applicationStatus" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ]
           }
         }
       },
@@ -2325,9 +2373,15 @@
       "SliceAuditEvent" : {
         "type" : "object",
         "properties" : {
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
           "numberOfElements" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "number" : {
             "type" : "integer",
@@ -2342,12 +2396,6 @@
             "items" : {
               "$ref" : "#/components/schemas/AuditEvent"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
           },
           "first" : {
             "type" : "boolean"

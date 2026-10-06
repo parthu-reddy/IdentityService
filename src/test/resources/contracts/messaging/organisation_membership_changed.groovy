@@ -7,7 +7,7 @@ org.springframework.cloud.contract.spec.Contract.make {
         sentTo('organisation-events')
         headers { header('eventType','ORGANISATION_MEMBERSHIP_CHANGED'); header('aggregateType','ORGANISATION') }
         body([
-            organisationId: $(producer(regex('[a-f0-9-]{36}'))),
+            organisationId: $(consumer('22222222-2222-2222-2222-222222222222'), producer(regex('[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'))),
             userId: '11111111-1111-1111-1111-111111111111',
             role: 'OWNER', status: 'ACTIVE',
             changedBy: '11111111-1111-1111-1111-111111111111',
