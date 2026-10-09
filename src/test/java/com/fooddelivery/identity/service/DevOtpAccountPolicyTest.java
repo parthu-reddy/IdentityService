@@ -41,9 +41,10 @@ class DevOtpAccountPolicyTest {
             .withUserConfiguration(DevOtpAccessPolicy.class).withBean(EntitlementService.class,()->mock(EntitlementService.class))
             .withInitializer(c -> c.getEnvironment().setActiveProfiles(profiles)).withPropertyValues("dev.otp.enabled="+enabled);
     }
-    @Test void parkedRunnerStillOnlySupportsSeededRangesAndTheTwoAdmins() {
-        for (String phone:new String[]{"8000000001","8000000504","9000000014","7000000034","1000000002"}) assertTrue(SeededOtpAccountPolicy.allows(phone,OtpPurpose.LOGIN));
-        for (String phone:new String[]{"8000000505","9000000015","7000000035","1000000003"}) assertFalse(SeededOtpAccountPolicy.allows(phone,OtpPurpose.LOGIN));
-        assertTrue(SeededOtpAccountPolicy.allows("1000000002",OtpPurpose.ADMIN));assertFalse(SeededOtpAccountPolicy.allows("8000000001",OtpPurpose.ADMIN));
+    @Test void parkedRunnerStillOnlySupportsSeededRangesAndTheFourAdmins() {
+        for (String phone:new String[]{"8000000001","8000000504","9000000014","7000000034","1000000002","1000000004"}) assertTrue(SeededOtpAccountPolicy.allows(phone,OtpPurpose.LOGIN));
+        for (String phone:new String[]{"8000000505","9000000015","7000000035","1000000005"}) assertFalse(SeededOtpAccountPolicy.allows(phone,OtpPurpose.LOGIN));
+        for (String phone:new String[]{"1000000001","1000000002","1000000003","1000000004"}) assertTrue(SeededOtpAccountPolicy.allows(phone,OtpPurpose.ADMIN));
+        assertFalse(SeededOtpAccountPolicy.allows("1000000005",OtpPurpose.ADMIN));assertFalse(SeededOtpAccountPolicy.allows("8000000001",OtpPurpose.ADMIN));
     }
 }

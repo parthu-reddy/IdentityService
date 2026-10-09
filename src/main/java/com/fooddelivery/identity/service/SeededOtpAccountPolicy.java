@@ -13,7 +13,7 @@ public final class SeededOtpAccountPolicy {
     private static final long DELIVERY_FIRST = 7_000_000_001L;
     private static final long DELIVERY_LAST = 7_000_000_034L;
     private static final long ADMIN_FIRST = 1_000_000_001L;
-    private static final long ADMIN_LAST = 1_000_000_002L;
+    private static final long ADMIN_LAST = 1_000_000_004L;
 
     private SeededOtpAccountPolicy() {
     }

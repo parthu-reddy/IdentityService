@@ -22,11 +22,12 @@ class E2eSeededAccountAllowlistTest {
         assertTrue(allowlist.allows("7000000001", OtpPurpose.LOGIN));
         assertTrue(allowlist.allows("7000000030", OtpPurpose.LOGIN));
         assertTrue(allowlist.allows("1000000001", OtpPurpose.ADMIN));
+        assertTrue(allowlist.allows("1000000004", OtpPurpose.ADMIN));
 
         assertFalse(allowlist.allows("8000000505", OtpPurpose.LOGIN));
         assertFalse(allowlist.allows("9000000015", OtpPurpose.LOGIN));
         assertFalse(allowlist.allows("7000000035", OtpPurpose.LOGIN));
-        assertFalse(allowlist.allows("1000000003", OtpPurpose.ADMIN));
+        assertFalse(allowlist.allows("1000000005", OtpPurpose.ADMIN));
         assertFalse(allowlist.allows("8000000001", OtpPurpose.ADMIN));
     }
 }
