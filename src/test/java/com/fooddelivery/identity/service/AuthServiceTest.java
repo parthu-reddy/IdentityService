@@ -85,6 +85,15 @@ class AuthServiceTest {
         stored.put("OTP:"+phone+":LOGIN","654321");refuses(401,this::login);
         verify(users,never()).saveAndFlush(any());assertNull(stored.get("USER_SESSIONS:"+user.getId()));
     }
+    @Test void loginCodeIsStoredForFiveMinutes() {
+        stored.clear();auth.initiateLogin(phone);
+        verify(cache).put(eq("OTP:"+phone+":LOGIN"),matches("[0-9]{6}"),eq(5L));
+    }
+    @Test void expiredCodeIsRefusedAndCreatesNoSession() {
+        stored.remove("OTP:"+phone+":LOGIN"); // Redis dropped the key when its five minutes ran out
+        var ex=refuses(401,this::login);assertEquals("Invalid or expired code",ex.getReason());
+        verify(users,never()).saveAndFlush(any());assertNull(stored.get("USER_SESSIONS:"+user.getId()));
+    }
     @Test void inactiveAccountCannotReceiveATokenOrBeReactivated() {
         user.setActive(false);refuses(401,this::login);assertNull(stored.get("USER_SESSIONS:"+user.getId()));
         verify(users,never()).saveAndFlush(any());
