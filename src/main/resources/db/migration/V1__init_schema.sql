@@ -23,6 +23,7 @@ CREATE TABLE user_devices (
     device_model VARCHAR(255),
     login_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_user_devices_user_login ON user_devices(user_id, login_time);
 
 CREATE TABLE organisations (
  id UUID PRIMARY KEY, display_name VARCHAR(120) NOT NULL,
