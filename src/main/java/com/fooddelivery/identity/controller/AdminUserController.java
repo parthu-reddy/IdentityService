@@ -57,6 +57,7 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<com.fooddelivery.common.dto.PageResponseDto<UserDTO>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        com.fooddelivery.identity.controller.PageBounds.check(page, size);
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<UserDTO> users = internalUserService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(com.fooddelivery.common.dto.PageResponseDto.of(users), "All users retrieved successfully"));
@@ -79,6 +80,7 @@ public class AdminUserController {
             @RequestParam RoleName role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        com.fooddelivery.identity.controller.PageBounds.check(page, size);
         
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<UserDTO> users = internalUserService.getUsersByRole(role, pageable);
