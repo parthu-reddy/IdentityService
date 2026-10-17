@@ -45,6 +45,11 @@ class OrganisationQueryCountTest {
     void addMember(UUID org,UUID user,OrganisationRole role){members.saveAndFlush(OrganisationMember.builder().id(UUID.randomUUID()).organisationId(org).userId(user).role(role).status(MembershipStatus.ACTIVE).addedBy(user).createdAt(now).updatedAt(now).build());}
     void addBusiness(UUID org){businesses.saveAndFlush(BusinessEntitlement.builder().businessType(BusinessType.RESTAURANT).businessId(UUID.randomUUID()).organisationId(org).applicationStatus(ApplicationStatus.APPROVED).applicationVersion(1).updatedAt(now).build());}
     long queries(Runnable work){var stats=factory.unwrap(SessionFactory.class).getStatistics();stats.clear();work.run();return stats.getPrepareStatementCount();}
+    // A background EntitlementVersionPublisher.retryPending would add statements and cache calls mid-test.
+    @Test void sliceRunsNoScheduledJobs(@Autowired org.springframework.context.ApplicationContext context){
+        assertTrue(context.getBeansOfType(org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class).isEmpty(),
+            "@EnableScheduling must stay off IdentityApplication; slice tests inherit its annotations");
+    }
     @Test void oneAndFiftyMembersCostTheSameNumberOfStatementsAndStaffPhonesAreMasked(){
         UUID actor=addUser(1);var org=addOrg(actor);addMember(org.getId(),actor,OrganisationRole.STAFF);
         var auth=new UsernamePasswordAuthenticationToken(actor.toString(),null,List.of());

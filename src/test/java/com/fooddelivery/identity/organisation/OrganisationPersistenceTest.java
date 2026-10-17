@@ -56,6 +56,11 @@ class OrganisationPersistenceTest {
     UUID user(String phone){return users.saveAndFlush(AppUser.builder().phoneNumber(phone).isActive(true).build()).getId();}
     long auditCount(){return new TransactionTemplate(manager).execute(s -> em.createQuery("select count(a) from AuditEvent a",Long.class).getSingleResult());}
 
+    // A background EntitlementVersionPublisher.retryPending would add statements and cache calls mid-test.
+    @Test void sliceRunsNoScheduledJobs(@Autowired org.springframework.context.ApplicationContext context){
+        assertTrue(context.getBeansOfType(org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class).isEmpty(),
+            "@EnableScheduling must stay off IdentityApplication; slice tests inherit its annotations");
+    }
     @Test void committedActionHasOrganisationOwnerOutboxAndAuditReadFromNewTransactions(){
         UUID actor=user("8999000101");
         var created=service.create(auth(actor),"Committed organisation");

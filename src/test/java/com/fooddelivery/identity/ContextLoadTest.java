@@ -70,13 +70,23 @@ class ContextLoadTest {
 
     @Test
     void organisationOutboxPublisherIsActuallyScheduled() {
+        assertTrue(isScheduled(com.fooddelivery.common.outbox.service.OutboxProcessor.class,"processOutboxEvents"),
+                "The organisation outbox publisher must be scheduled in the real Identity context");
+    }
+
+    // Scheduling is enabled by config.SchedulingConfiguration, not the main class, so slice tests run without it.
+    @Test
+    void entitlementVersionRetryIsActuallyScheduled() {
+        assertTrue(isScheduled(com.fooddelivery.identity.entitlement.service.EntitlementVersionPublisher.class,"retryPending"),
+                "Unacknowledged entitlement versions are only re-published by the scheduled retry");
+    }
+
+    private boolean isScheduled(Class<?> type,String name) {
         var schedulers=context.getBeansOfType(org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class);
-        assertFalse(schedulers.isEmpty(), "The outbox bean alone does not publish; scheduling must be enabled");
-        assertTrue(schedulers.values().stream().flatMap(s -> s.getScheduledTasks().stream())
+        assertFalse(schedulers.isEmpty(), "The beans alone do not run; scheduling must be enabled");
+        return schedulers.values().stream().flatMap(s -> s.getScheduledTasks().stream())
                 .map(t -> t.getTask().getRunnable())
                 .anyMatch(r -> r instanceof org.springframework.scheduling.support.ScheduledMethodRunnable method
-                        && method.getMethod().getDeclaringClass()==com.fooddelivery.common.outbox.service.OutboxProcessor.class
-                        && method.getMethod().getName().equals("processOutboxEvents")),
-                "The organisation outbox publisher must be scheduled in the real Identity context");
+                        && method.getMethod().getDeclaringClass()==type && method.getMethod().getName().equals(name));
     }
 }
