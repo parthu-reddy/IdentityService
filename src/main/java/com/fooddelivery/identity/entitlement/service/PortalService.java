@@ -24,7 +24,7 @@ public class PortalService {
     private final DeliveryEntitlementRepository delivery;
 
     public List<PortalView> portals(UUID userId) {
-        entitlements.requireActiveUser(userId);
+        var user = entitlements.requireActiveUser(userId);
         var memberships = members.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE);
         var orgs =
                 organisations.findAllById(
@@ -71,6 +71,9 @@ public class PortalService {
                         .filter(o -> o.role().grants(OrganisationPermission.ADS_VIEW))
                         .toList();
         var rider = delivery.findById(userId);
+        // Kitchen staff are not members: outlet details come from GET /api/v1/kitchen/me/workplaces.
+        var kitchen = entitlements.liveKitchen(List.of(user));
+        var kitchenOpen = !entitlements.kitchenOrganisations(kitchen).isEmpty();
         return List.of(
                 new PortalView(Portal.CUSTOMER, State.AVAILABLE, List.of(), null),
                 businessPortal(Portal.RESTAURANT, restaurants),
@@ -82,6 +85,15 @@ public class PortalService {
                         rider.map(e -> e.getReason()).orElse(null)),
                 businessPortal(Portal.BUSINESS, orgViews),
                 businessPortal(Portal.ADS, ads),
+                new PortalView(
+                        Portal.KITCHEN,
+                        kitchen.isEmpty()
+                                ? State.UNAVAILABLE
+                                : kitchenOpen ? State.AVAILABLE : State.SUSPENDED,
+                        List.of(),
+                        kitchen.isEmpty() || kitchenOpen
+                                ? null
+                                : "Restaurant access is suspended or closed"),
                 new PortalView(
                         Portal.ADMIN,
                         entitlements.isAdministrator(userId)

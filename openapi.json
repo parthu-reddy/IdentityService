@@ -1000,7 +1000,7 @@
           "required" : true,
           "schema" : {
             "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
           }
         }, {
           "name" : "page",
@@ -1364,7 +1364,7 @@
           "required" : true,
           "schema" : {
             "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
           }
         } ],
         "responses" : {
@@ -1921,7 +1921,7 @@
         "properties" : {
           "portal" : {
             "type" : "string",
-            "enum" : [ "CUSTOMER", "RESTAURANT", "DELIVERY", "ADS", "BUSINESS", "ADMIN" ]
+            "enum" : [ "CUSTOMER", "RESTAURANT", "DELIVERY", "ADS", "BUSINESS", "KITCHEN", "ADMIN" ]
           },
           "state" : {
             "type" : "string",
@@ -2241,7 +2241,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS" ]
+              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
             }
           },
           "active" : {
@@ -2343,7 +2343,7 @@
           },
           "action" : {
             "type" : "string",
-            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED" ]
+            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE" ]
           },
           "subjectType" : {
             "type" : "string"

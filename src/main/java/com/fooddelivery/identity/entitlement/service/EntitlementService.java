@@ -1,6 +1,7 @@
 package com.fooddelivery.identity.entitlement.service;
 
 import com.fooddelivery.common.enums.*;
+import com.fooddelivery.identity.entitlement.entity.*;
 import com.fooddelivery.identity.entitlement.repository.*;
 import com.fooddelivery.identity.entity.AppUser;
 import com.fooddelivery.identity.organisation.entity.*;
@@ -26,6 +27,7 @@ public class EntitlementService {
     private final OrganisationRepository organisations;
     private final BusinessEntitlementRepository businesses;
     private final DeliveryEntitlementRepository delivery;
+    private final KitchenEntitlementRepository kitchens;
 
     public AppUser requireActiveUser(UUID userId) {
         return users.findById(userId)
@@ -38,7 +40,7 @@ public class EntitlementService {
 
     @Observed(name = "auth.entitlements.roles")
     public List<RoleName> rolesFor(UUID userId) {
-        requireActiveUser(userId);
+        var user = requireActiveUser(userId);
         var roles = EnumSet.of(RoleName.CUSTOMER);
         delivery.findById(userId)
                 .filter(e -> e.getApplicationStatus() == ApplicationStatus.APPROVED)
@@ -62,6 +64,7 @@ public class EntitlementService {
                     roles.add(RoleName.RESTAURANT);
             }
         }
+        if (!kitchenOrganisations(liveKitchen(List.of(user))).isEmpty()) roles.add(RoleName.KITCHEN);
         // Staff assignments can never elevate the everyday token.
         return List.copyOf(roles);
     }
@@ -143,11 +146,57 @@ public class EntitlementService {
                             var roles = approved.get(m.getOrganisationId());
                             if (roles != null) result.get(m.getUserId()).addAll(roles);
                         });
+        var kitchen = liveKitchen(people.stream().filter(AppUser::isActive).toList());
+        var kitchenOrgs = kitchenOrganisations(kitchen);
+        var byPhone = new HashMap<String, UUID>();
+        people.stream()
+                .filter(AppUser::isActive)
+                .forEach(u -> byPhone.put(u.getPhoneNumber(), u.getId()));
+        kitchen.stream()
+                .filter(k -> kitchenOrgs.contains(k.getOrganisationId()))
+                .forEach(
+                        k ->
+                                result.get(
+                                                k.getUserId() != null
+                                                        ? k.getUserId()
+                                                        : byPhone.get(k.getPhoneNumber()))
+                                        .add(RoleName.KITCHEN));
         staff.findByUserIdIn(ids).stream()
                 .filter(r -> r.getRoleName() == RoleName.ADMIN)
                 .forEach(r -> result.get(r.getUser().getId()).add(RoleName.ADMIN));
         var view = new LinkedHashMap<UUID, List<RoleName>>();
         result.forEach((id, roles) -> view.put(id, List.copyOf(roles)));
         return Map.copyOf(view);
+    }
+
+    /** Live kitchen staff rows of these people: bound to one of them, or unbound under one of their phones. */
+    List<KitchenEntitlement> liveKitchen(Collection<AppUser> people) {
+        if (people.isEmpty()) return List.of();
+        return kitchens.findLive(
+                people.stream().map(AppUser::getId).toList(),
+                people.stream().map(AppUser::getPhoneNumber).toList(),
+                KitchenEntitlementRepository.LIVE);
+    }
+
+    /**
+     * The organisations among these rows whose kitchens are open: ACTIVE, with an APPROVED restaurant business — the
+     * same predicate that grants RESTAURANT to members.
+     */
+    Set<UUID> kitchenOrganisations(Collection<KitchenEntitlement> live) {
+        var ids = live.stream().map(KitchenEntitlement::getOrganisationId).distinct().toList();
+        if (ids.isEmpty()) return Set.of();
+        var open =
+                organisations.findAllById(ids).stream()
+                        .filter(o -> o.getStatus() == OrganisationStatus.ACTIVE)
+                        .map(Organisation::getId)
+                        .toList();
+        if (open.isEmpty()) return Set.of();
+        return businesses.findAllByOrganisationIdIn(open).stream()
+                .filter(
+                        b ->
+                                b.getBusinessType() == BusinessType.RESTAURANT
+                                        && b.getApplicationStatus() == ApplicationStatus.APPROVED)
+                .map(BusinessEntitlement::getOrganisationId)
+                .collect(java.util.stream.Collectors.toSet());
     }
 }

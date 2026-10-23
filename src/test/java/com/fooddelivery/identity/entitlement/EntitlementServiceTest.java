@@ -73,7 +73,7 @@ class EntitlementServiceTest extends EntitlementH2Fixture {
         var stats=em.getEntityManagerFactory().unwrap(org.hibernate.SessionFactory.class).getStatistics();em.clear();stats.clear();
         var one=entitlements.allRolesFor(people.subList(0,1));long oneQueries=stats.getPrepareStatementCount();
         em.clear();stats.clear();var fifty=entitlements.allRolesFor(people);long fiftyQueries=stats.getPrepareStatementCount();
-        assertEquals(1,one.size());assertEquals(50,fifty.size());assertEquals(oneQueries,fiftyQueries);assertTrue(fiftyQueries<=5,"Five batched reads, no per-person queries");
+        assertEquals(1,one.size());assertEquals(50,fifty.size());assertEquals(oneQueries,fiftyQueries);assertTrue(fiftyQueries<=6,"Six batched reads (kitchen rows included), no per-person queries");
         fifty.values().forEach(roles->assertEquals(List.of(RoleName.CUSTOMER,RoleName.DELIVERY,RoleName.RESTAURANT,RoleName.BUSINESS),roles));
     }
 }

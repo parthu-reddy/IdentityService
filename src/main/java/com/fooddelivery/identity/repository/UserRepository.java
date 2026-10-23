@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<AppUser, UUID> {
     Optional<AppUser> findByPhoneNumber(String phoneNumber);
+    java.util.List<AppUser> findAllByPhoneNumberIn(java.util.Collection<String> phoneNumbers);
     @org.springframework.data.jpa.repository.Query("""
         select u from AppUser u where
         (:role='ADMIN' and exists(select r.id from UserRole r where r.user=u and r.roleName=com.fooddelivery.common.enums.RoleName.ADMIN))
@@ -19,6 +20,13 @@ public interface UserRepository extends JpaRepository<AppUser, UUID> {
             and o.id=m.organisationId and o.status=com.fooddelivery.common.enums.OrganisationStatus.ACTIVE
             and b.organisationId=o.id and b.applicationStatus=com.fooddelivery.common.enums.ApplicationStatus.APPROVED
             and (:role='BUSINESS' or b.businessType=com.fooddelivery.common.enums.BusinessType.RESTAURANT)))
+          or (:role='KITCHEN' and exists(
+            select k.staffId from KitchenEntitlement k, Organisation o, BusinessEntitlement b
+            where (k.userId=u.id or (k.userId is null and k.phoneNumber=u.phoneNumber))
+            and k.status in (com.fooddelivery.common.enums.KitchenStaffStatus.INVITED,com.fooddelivery.common.enums.KitchenStaffStatus.ACTIVE)
+            and o.id=k.organisationId and o.status=com.fooddelivery.common.enums.OrganisationStatus.ACTIVE
+            and b.organisationId=o.id and b.applicationStatus=com.fooddelivery.common.enums.ApplicationStatus.APPROVED
+            and b.businessType=com.fooddelivery.common.enums.BusinessType.RESTAURANT))
         ))
         """)
     org.springframework.data.domain.Page<AppUser> findWithEntitlement(@org.springframework.data.repository.query.Param("role") String role,

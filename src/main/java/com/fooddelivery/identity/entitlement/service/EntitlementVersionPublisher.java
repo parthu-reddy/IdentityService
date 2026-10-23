@@ -3,7 +3,10 @@ package com.fooddelivery.identity.entitlement.service;
 import com.fooddelivery.common.constants.RedisKeyConstants;
 import com.fooddelivery.common.enums.MembershipStatus;
 import com.fooddelivery.identity.entitlement.entity.EntitlementPublication;
+import com.fooddelivery.identity.entitlement.entity.KitchenEntitlement;
 import com.fooddelivery.identity.entitlement.repository.EntitlementPublicationRepository;
+import com.fooddelivery.identity.entitlement.repository.KitchenEntitlementRepository;
+import com.fooddelivery.identity.entity.AppUser;
 import com.fooddelivery.identity.organisation.repository.OrganisationMemberRepository;
 import com.fooddelivery.identity.port.CachePort;
 import com.fooddelivery.identity.repository.UserRepository;
@@ -29,6 +32,7 @@ import java.util.*;
 public class EntitlementVersionPublisher {
     private final UserRepository users;
     private final OrganisationMemberRepository members;
+    private final KitchenEntitlementRepository kitchens;
     private final EntitlementPublicationRepository publications;
     private final CachePort cache;
     private final TransactionTemplate acknowledgement;
@@ -42,23 +46,42 @@ public class EntitlementVersionPublisher {
     public EntitlementVersionPublisher(
             UserRepository users,
             OrganisationMemberRepository members,
+            KitchenEntitlementRepository kitchens,
             EntitlementPublicationRepository publications,
             CachePort cache,
             PlatformTransactionManager manager) {
         this.users = users;
         this.members = members;
+        this.kitchens = kitchens;
         this.publications = publications;
         this.cache = cache;
         acknowledgement = new TransactionTemplate(manager);
         acknowledgement.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
+    /** Members and live kitchen staff (bound, or unbound under a person's phone) of the organisation. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void bumpOrganisation(UUID id) {
-        bump(
-                members.findAllByOrganisationIdAndStatus(id, MembershipStatus.ACTIVE).stream()
-                        .map(m -> m.getUserId())
-                        .toList());
+        var affected = new HashSet<UUID>();
+        members.findAllByOrganisationIdAndStatus(id, MembershipStatus.ACTIVE)
+                .forEach(m -> affected.add(m.getUserId()));
+        var kitchen =
+                kitchens.findAllByOrganisationIdAndStatusIn(id, KitchenEntitlementRepository.LIVE);
+        kitchen.stream()
+                .map(KitchenEntitlement::getUserId)
+                .filter(Objects::nonNull)
+                .forEach(affected::add);
+        var unbound =
+                kitchen.stream()
+                        .filter(k -> k.getUserId() == null)
+                        .map(KitchenEntitlement::getPhoneNumber)
+                        .distinct()
+                        .toList();
+        if (!unbound.isEmpty())
+            users.findAllByPhoneNumberIn(unbound).stream()
+                    .map(AppUser::getId)
+                    .forEach(affected::add);
+        bump(affected);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

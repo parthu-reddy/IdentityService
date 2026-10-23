@@ -66,6 +66,22 @@ CREATE TABLE delivery_entitlements (
  application_status VARCHAR(20) NOT NULL CHECK (application_status IN ('DRAFT','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','SUSPENDED')),
  reason VARCHAR(500), application_version BIGINT NOT NULL CHECK (application_version >= 0), updated_at TIMESTAMPTZ NOT NULL
 );
+-- Projection of restaurant-service kitchen staff (kitchen-events). A row grants KITCHEN by phone before the person
+-- signs in and by user_id once they claim it; staff_version is monotonic per staff_id.
+CREATE TABLE kitchen_entitlements (
+ staff_id UUID PRIMARY KEY,
+ organisation_id UUID NOT NULL REFERENCES organisations(id),
+ outlet_id UUID NOT NULL,
+ phone_number VARCHAR(10) NOT NULL CHECK (phone_number ~ '^[0-9]{10}$'),
+ user_id UUID REFERENCES users(id),
+ is_manager BOOLEAN NOT NULL, is_chef BOOLEAN NOT NULL,
+ status VARCHAR(16) NOT NULL CHECK (status IN ('INVITED','ACTIVE','REMOVED')),
+ staff_version BIGINT NOT NULL CHECK (staff_version >= 0),
+ updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX idx_kitchen_entitlements_phone ON kitchen_entitlements (phone_number, status);   -- rolesFor before bind
+CREATE INDEX idx_kitchen_entitlements_user ON kitchen_entitlements (user_id, status);         -- rolesFor after bind; FK index
+CREATE INDEX idx_kitchen_entitlements_org ON kitchen_entitlements (organisation_id, status);  -- org suspend → bump; FK index
 CREATE TABLE entitlement_version_publications (
  user_id UUID PRIMARY KEY REFERENCES users(id), entitlements_version BIGINT NOT NULL
 );
