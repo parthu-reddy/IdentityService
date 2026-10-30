@@ -59,6 +59,15 @@ class KitchenEntitlementProjectionTest {
         assertEquals(now,row.getUpdatedAt());
         assertEquals(1,version(phoneOwner));assertEquals(0,version(owner));
     }
+    @Test void aWaiterIsStoredWithOnlyItsWaiterFlag() {
+        var owner=person();var waiter=person();var org=organisation(owner);var staffId=UUID.randomUUID();
+        assertTrue(projection.kitchen(event(staffId,org,waiter.getPhoneNumber(),null,KitchenStaffStatus.INVITED,1,KitchenRole.WAITER)));
+        var row=kitchens.findById(staffId).orElseThrow();
+        assertTrue(row.isWaiter());assertFalse(row.isManager());assertFalse(row.isChef());
+        assertTrue(projection.kitchen(event(staffId,org,waiter.getPhoneNumber(),null,KitchenStaffStatus.ACTIVE,2,KitchenRole.CHEF)));
+        row=kitchens.findById(staffId).orElseThrow();
+        assertFalse(row.isWaiter());assertTrue(row.isChef());
+    }
     @Test void duplicateAndOlderStaffVersionsAreIgnoredAndDoNotBumpAgain() {
         var owner=person();var cook=person();var org=organisation(owner);var staffId=UUID.randomUUID();
         assertTrue(projection.kitchen(event(staffId,org,cook.getPhoneNumber(),cook.getId(),KitchenStaffStatus.ACTIVE,3,KitchenRole.CHEF)));

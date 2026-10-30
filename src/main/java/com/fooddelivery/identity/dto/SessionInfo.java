@@ -19,7 +19,9 @@ public class SessionInfo {
     private String browser;
     @Schema(requiredMode = RequiredMode.REQUIRED)
     private long lastActive;
+    // SessionRegistry.prepare refuses DINE_IN: a guest's consent code never opens a session.
     @NotNull
+    @Schema(implementation = String.class, allowableValues = {"LOGIN", "ADMIN"})
     private com.fooddelivery.identity.service.OtpPurpose purpose;
     @NotNull
     private java.time.Instant createdAt;

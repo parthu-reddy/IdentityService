@@ -1407,6 +1407,71 @@
           }
         }
       }
+    },
+    "/api/v1/internal/identity/dine-in-consents" : {
+      "post" : {
+        "tags" : [ "internal-dine-in-consent-controller" ],
+        "operationId" : "requestDineInConsent",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DineInConsentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DineInConsentRequested"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/identity/dine-in-consents/{consentId}/verify" : {
+      "post" : {
+        "tags" : [ "internal-dine-in-consent-controller" ],
+        "operationId" : "verifyDineInConsent",
+        "parameters" : [ {
+          "name" : "consentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DineInConsentVerification"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DineInConsentVerified"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components" : {
@@ -2343,7 +2408,7 @@
           },
           "action" : {
             "type" : "string",
-            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED" ]
+            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED", "DINING_TABLE_CREATED", "DINING_TABLE_UPDATED", "DINING_TABLE_DEACTIVATED", "DINING_TABLE_REACTIVATED", "DINING_SESSION_OPENED", "DINING_SESSION_HANDED_OFF", "DINING_SESSION_CLOSED", "DINING_CONSENT_REQUESTED", "DINING_CONSENT_VERIFIED", "DINING_CONSENT_FAILED", "DINING_ORDER_PLACED", "DINING_LINE_SERVED", "DINING_LINE_UNSERVED", "DINING_LINE_VOID_REQUESTED", "DINING_LINE_VOID_APPROVED" ]
           },
           "subjectType" : {
             "type" : "string"
@@ -2464,6 +2529,66 @@
           "absoluteExpiresAt" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "DineInConsentRequest" : {
+        "required" : [ "outletId", "phone", "requestedByUserId", "sessionId" ],
+        "type" : "object",
+        "properties" : {
+          "phone" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          },
+          "outletId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "sessionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "requestedByUserId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "DineInConsentRequested" : {
+        "type" : "object",
+        "properties" : {
+          "consentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "maskedPhone" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DineInConsentVerification" : {
+        "required" : [ "code" ],
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "pattern" : "[0-9]{6}",
+            "type" : "string"
+          }
+        }
+      },
+      "DineInConsentVerified" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "newAccount" : {
+            "type" : "boolean"
           }
         }
       }

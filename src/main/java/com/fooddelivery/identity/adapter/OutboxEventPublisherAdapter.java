@@ -69,6 +69,32 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
         }
     }
 
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void publishDineInConsentCode(UUID consentId, String phoneNumber, String code) {
+        NotificationRequestEvent event = NotificationRequestEvent.builder()
+                .eventId("dine-in-consent:" + consentId)
+                .explicitRecipient(phoneNumber)
+                .channel(com.fooddelivery.common.enums.ChannelType.SMS)
+                .eventName(com.fooddelivery.common.constants.NotificationTemplate.DINE_IN_CONSENT)
+                .templateParams(java.util.List.of(code))
+                .build();
+        try {
+            outboxEventRepository.save(OutboxEventEntity.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
+                    .aggregateId(consentId.toString())
+                    .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
+                    .idempotencyKey(event.getEventId())
+                    .payload(objectMapper.writeValueAsString(event))
+                    .createdAt(java.time.Instant.now())
+                    .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
+                    .build());
+        } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
+            throw new IllegalStateException("Dine-in consent notification could not be stored", failure);
+        }
+    }
+
     static String roleLabel(com.fooddelivery.common.enums.OrganisationRole role) {
         return switch (role) {
             case OWNER -> "an owner";

@@ -34,6 +34,7 @@ import java.util.*;
 @lombok.RequiredArgsConstructor
 public class AuthService {
     private final UserRepository users;
+    private final UserProvisioner provisioner;
     private final EventPublisherPort events;
     private final CachePort cache;
     private final SessionRegistry sessions;
@@ -96,17 +97,8 @@ public class AuthService {
     public SessionResponse createSession(SessionRequest request) {
         String phone = validPhone(request.phoneNumber());
         verifyOtp(phone, request.otp(), OtpPurpose.LOGIN);
-        var existing = users.findByPhoneNumber(phone);
-        boolean newUser = existing.isEmpty();
-        var user =
-                existing.orElseGet(
-                        () ->
-                                users.saveAndFlush(
-                                        AppUser.builder()
-                                                .phoneNumber(phone)
-                                                .isActive(true)
-                                                .build()));
-        user = lockActive(user.getId());
+        var provisioned = provisioner.findOrCreate(phone);
+        var user = provisioned.user();
         var candidate =
                 sessions.prepare(
                         user.getId(),
@@ -120,13 +112,13 @@ public class AuthService {
         sessions.commitNew(user.getId(), candidate);
         cache.delete("RATELIMIT:VERIFY:" + phone);
         return new SessionResponse(
-                token(user, roles, candidate.get(candidate.size() - 1)), newUser);
+                token(user, roles, candidate.get(candidate.size() - 1)), provisioned.created());
     }
 
     @Transactional
     public SessionResponse refresh(UUID userId, String sid) {
         try {
-            var user = lockActive(userId);
+            var user = provisioner.lockActive(userId);
             var session = sessions.require(userId, sid);
             limit(RedisKeyConstants.RL_SESSION_REFRESH + sid, 60, 30);
             var roles =
@@ -157,7 +149,7 @@ public class AuthService {
     public SessionResponse createAdminSession(
             UUID userId, String sourceSid, AdminSessionRequest request) {
         try {
-            var user = lockActive(userId);
+            var user = provisioner.lockActive(userId);
             var source = sessions.require(userId, sourceSid);
             var roles = adminRoles(userId);
             verifyOtp(user.getPhoneNumber(), request.otp(), OtpPurpose.ADMIN);
@@ -208,7 +200,7 @@ public class AuthService {
 
     @Transactional
     public void removeSession(UUID userId, String sid) {
-        lockActive(userId);
+        provisioner.lockActive(userId);
         sessions.remove(userId, sid, true);
     }
 
@@ -223,15 +215,6 @@ public class AuthService {
         sessions.removeAll(userId);
     }
 
-    private AppUser lockActive(UUID userId) {
-        return users.lockById(userId)
-                .filter(AppUser::isActive)
-                .orElseThrow(
-                        () ->
-                                new ResponseStatusException(
-                                        HttpStatus.UNAUTHORIZED, "Account is unavailable"));
-    }
-
     private List<RoleName> adminRoles(UUID userId) {
         if (!entitlements.isAdministrator(userId))
             throw new ResponseStatusException(
@@ -239,28 +222,51 @@ public class AuthService {
         return List.of(RoleName.ADMIN);
     }
 
+    /** Initiate and verify limits per sign-in purpose; exhaustive, so a new purpose cannot inherit LOGIN's. */
+    private record OtpLimits(
+            String initiateKey,
+            long initiateMinutes,
+            int initiateMax,
+            String verifyKey,
+            long verifyMinutes,
+            int verifyMax) {}
+
+    private OtpLimits limits(String phone, OtpPurpose purpose) {
+        return switch (purpose) {
+            case LOGIN ->
+                    new OtpLimits(
+                            "RATELIMIT:INITIATE:" + phone,
+                            initiateWindowMinutes,
+                            initiateMaxAttempts,
+                            "RATELIMIT:VERIFY:" + phone,
+                            verifyWindowMinutes,
+                            verifyMaxAttempts);
+            case ADMIN ->
+                    new OtpLimits(
+                            RedisKeyConstants.RL_ADMIN_OTP_INITIATE + phone,
+                            10,
+                            10,
+                            RedisKeyConstants.RL_ADMIN_OTP_VERIFY + phone,
+                            5,
+                            5);
+            case DINE_IN ->
+                    throw new IllegalArgumentException(
+                            "Dine-in codes are issued by DineInConsentService and never sign in");
+        };
+    }
+
     private void sendOtp(String phone, OtpPurpose purpose) {
-        limit(
-                purpose == OtpPurpose.ADMIN
-                        ? RedisKeyConstants.RL_ADMIN_OTP_INITIATE + phone
-                        : "RATELIMIT:INITIATE:" + phone,
-                purpose == OtpPurpose.ADMIN ? 10 : initiateWindowMinutes,
-                purpose == OtpPurpose.ADMIN ? 10 : initiateMaxAttempts);
+        var limits = limits(phone, purpose);
+        limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
         String otp = String.format(Locale.ROOT, "%06d", random.nextInt(1_000_000));
         cache.put(otpKey(phone, purpose), otp, 5);
         events.publishNotificationEvent(phone, "SMS", otp);
     }
 
     private void verifyOtp(String phone, String otp, OtpPurpose purpose) {
-        String key =
-                purpose == OtpPurpose.ADMIN
-                        ? RedisKeyConstants.RL_ADMIN_OTP_VERIFY + phone
-                        : "RATELIMIT:VERIFY:" + phone;
+        var limits = limits(phone, purpose);
         try {
-            limit(
-                    key,
-                    purpose == OtpPurpose.ADMIN ? 5 : verifyWindowMinutes,
-                    purpose == OtpPurpose.ADMIN ? 5 : verifyMaxAttempts);
+            limit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
         } catch (ResponseStatusException ex) {
             cache.delete(otpKey(phone, purpose));
             throw ex;

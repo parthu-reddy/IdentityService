@@ -13,4 +13,7 @@ public interface EventPublisherPort {
      *                       null for a phone that has not signed up yet
      */
     void publishOrganisationInvitation(UUID invitationId, String phoneNumber, UUID existingUserId, OrganisationRole role);
+
+    /** SMSes a dine-in guest the code they read to the waiter, inside the requesting transaction. Code only. */
+    void publishDineInConsentCode(UUID consentId, String phoneNumber, String code);
 }

@@ -53,7 +53,7 @@ class AuthServiceTest {
         when(users.findByPhoneNumber(phone)).thenReturn(Optional.of(user));when(users.lockById(user.getId())).thenReturn(Optional.of(user));
         when(entitlements.requireActiveUser(user.getId())).thenReturn(user);when(entitlements.rolesFor(user.getId())).thenReturn(List.of(RoleName.CUSTOMER));
         registry=new SessionRegistry(cache,mapper,clock);
-        auth=new AuthService(users,events,cache,registry,entitlements,clock,new SimpleMeterRegistry(),audit);
+        auth=new AuthService(users,new UserProvisioner(users),events,cache,registry,entitlements,clock,new SimpleMeterRegistry(),audit);
         ReflectionTestUtils.setField(auth,"privateKeyResource",new ClassPathResource("certs/private.pem"));auth.init();
         String pem=new String(new ClassPathResource("certs/public.pem").getInputStream().readAllBytes(),StandardCharsets.UTF_8);
         publicKey=KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(pem.replace("-----BEGIN PUBLIC KEY-----","").replace("-----END PUBLIC KEY-----","").replaceAll("\\s",""))));
@@ -97,6 +97,19 @@ class AuthServiceTest {
     @Test void inactiveAccountCannotReceiveATokenOrBeReactivated() {
         user.setActive(false);refuses(401,this::login);assertNull(stored.get("USER_SESSIONS:"+user.getId()));
         verify(users,never()).saveAndFlush(any());
+    }
+    @Test void dineInCodeCannotSignIn() {
+        stored.remove("OTP:"+phone+":LOGIN"); // no sign-in code outstanding, only the guest's dine-in consent
+        var consents=new com.fooddelivery.identity.dinein.service.DineInConsentService(new com.fooddelivery.identity.dinein.InMemoryDineInConsentStore(),
+                cache,events,new UserProvisioner(users),audit,clock);
+        var consent=consents.request(new com.fooddelivery.identity.dinein.dto.DineInConsentRequests.DineInConsentRequest(phone,UUID.randomUUID(),UUID.randomUUID(),UUID.randomUUID()));
+        var sent=org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(events).publishDineInConsentCode(eq(consent.consentId()),eq(phone),sent.capture());
+        var ex=refuses(401,() -> auth.createSession(new SessionRequest(phone,sent.getValue(),"Test device","macOS","Chromium",null)));
+        assertEquals("Invalid or expired code",ex.getReason());
+        verify(users,never()).saveAndFlush(any());assertNull(stored.get("USER_SESSIONS:"+user.getId()));
+        assertThrows(IllegalArgumentException.class,() -> registry.prepare(user.getId(),OtpPurpose.DINE_IN,"d","macOS","Chromium",null),
+                "a dine-in purpose never opens a session");
     }
     @Test void concurrentlyConsumedCodeCannotCreateAnotherSession() {
         when(cache.consumeOtp(anyString(),anyString())).thenReturn(false);refuses(401,this::login);

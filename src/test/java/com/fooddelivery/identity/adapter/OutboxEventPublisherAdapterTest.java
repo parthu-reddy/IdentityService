@@ -27,4 +27,21 @@ class OutboxEventPublisherAdapterTest {
                     || log.getFormattedMessage().contains("123456")));
         } finally { logger.detachAppender(logs); logs.stop(); }
     }
+
+    @Test void dineInConsentSmsCarriesOnlyTheCodeUnderItsOwnTemplate() throws Exception {
+        var repository = mock(OutboxEventRepository.class);
+        var mapper = new ObjectMapper();
+        var consentId = java.util.UUID.randomUUID();
+        new OutboxEventPublisherAdapter(repository, mapper).publishDineInConsentCode(consentId, "8999123456", "482913");
+        var capture = org.mockito.ArgumentCaptor.forClass(OutboxEventEntity.class);
+        verify(repository).save(capture.capture());
+        var event = capture.getValue(); var body = mapper.readTree(event.getPayload());
+        assertEquals(consentId.toString(), event.getAggregateId());
+        assertEquals("dine-in-consent:" + consentId, event.getIdempotencyKey());
+        assertEquals("DINE_IN_CONSENT", body.get("eventName").asText());
+        assertEquals("SMS", body.get("channel").asText());
+        assertEquals("8999123456", body.get("explicitRecipient").asText());
+        assertNull(body.get("userId").textValue());
+        assertEquals(java.util.List.of("482913"), mapper.convertValue(body.get("templateParams"), java.util.List.class));
+    }
 }

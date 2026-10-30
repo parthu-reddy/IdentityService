@@ -108,6 +108,7 @@ public class EntitlementProjectionService {
         row.setUserId(event.getUserId());
         row.setManager(event.getRoles().contains(KitchenRole.MANAGER));
         row.setChef(event.getRoles().contains(KitchenRole.CHEF));
+        row.setWaiter(event.getRoles().contains(KitchenRole.WAITER));
         row.setStatus(event.getStatus());
         row.setStaffVersion(event.getStaffVersion());
         row.setUpdatedAt(clock.instant());

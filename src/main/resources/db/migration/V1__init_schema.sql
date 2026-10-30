@@ -67,17 +67,19 @@ CREATE TABLE delivery_entitlements (
  reason VARCHAR(500), application_version BIGINT NOT NULL CHECK (application_version >= 0), updated_at TIMESTAMPTZ NOT NULL
 );
 -- Projection of restaurant-service kitchen staff (kitchen-events). A row grants KITCHEN by phone before the person
--- signs in and by user_id once they claim it; staff_version is monotonic per staff_id.
+-- signs in and by user_id once they claim it; staff_version is monotonic per staff_id. Every event carries at least
+-- one role (a REMOVED event keeps its last roles), so a row always has one flag set.
 CREATE TABLE kitchen_entitlements (
  staff_id UUID PRIMARY KEY,
  organisation_id UUID NOT NULL REFERENCES organisations(id),
  outlet_id UUID NOT NULL,
  phone_number VARCHAR(10) NOT NULL CHECK (phone_number ~ '^[0-9]{10}$'),
  user_id UUID REFERENCES users(id),
- is_manager BOOLEAN NOT NULL, is_chef BOOLEAN NOT NULL,
+ is_manager BOOLEAN NOT NULL, is_chef BOOLEAN NOT NULL, is_waiter BOOLEAN NOT NULL,
  status VARCHAR(16) NOT NULL CHECK (status IN ('INVITED','ACTIVE','REMOVED')),
  staff_version BIGINT NOT NULL CHECK (staff_version >= 0),
- updated_at TIMESTAMPTZ NOT NULL
+ updated_at TIMESTAMPTZ NOT NULL,
+ CONSTRAINT chk_kitchen_entitlements_role CHECK (is_manager OR is_chef OR is_waiter)
 );
 CREATE INDEX idx_kitchen_entitlements_phone ON kitchen_entitlements (phone_number, status);   -- rolesFor before bind
 CREATE INDEX idx_kitchen_entitlements_user ON kitchen_entitlements (user_id, status);         -- rolesFor after bind; FK index

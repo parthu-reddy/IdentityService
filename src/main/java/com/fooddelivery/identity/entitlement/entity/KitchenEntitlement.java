@@ -16,6 +16,7 @@ public class KitchenEntitlement {
     @Column(name="user_id") private UUID userId;
     @Column(name="is_manager",nullable=false) private boolean manager;
     @Column(name="is_chef",nullable=false) private boolean chef;
+    @Column(name="is_waiter",nullable=false) private boolean waiter;
     @Enumerated(EnumType.STRING) @Column(nullable=false,length=16) private KitchenStaffStatus status;
     @Column(name="staff_version",nullable=false) private long staffVersion;
     @Column(name="updated_at",nullable=false) private Instant updatedAt;

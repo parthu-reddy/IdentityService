@@ -39,6 +39,13 @@ class EntitlementServiceKitchenRoleTest extends EntitlementH2Fixture {
         assertEquals(KITCHEN,entitlements.rolesFor(bound.getId()));
         assertEquals(CUSTOMER,entitlements.rolesFor(phoneHolder.getId()));
     }
+    @Test void aWaiterOnlyRowGrantsKitchen() {
+        var person=person();
+        kitchens.saveAndFlush(KitchenEntitlement.builder().staffId(UUID.randomUUID()).organisationId(restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED).getId())
+                .outletId(UUID.randomUUID()).phoneNumber(person.getPhoneNumber()).userId(person.getId()).manager(false).chef(false).waiter(true)
+                .status(KitchenStaffStatus.ACTIVE).staffVersion(1).updatedAt(now).build());
+        assertEquals(KITCHEN,entitlements.rolesFor(person.getId()));
+    }
     @Test void removedStaffHaveNoKitchenRole() {
         var person=person();var org=restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED);
         staff(org,person.getPhoneNumber(),null,KitchenStaffStatus.REMOVED);staff(org,person.getPhoneNumber(),person.getId(),KitchenStaffStatus.REMOVED);

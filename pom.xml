@@ -224,6 +224,7 @@
                     <testFramework>JUNIT5</testFramework>
                     <baseClassForTests>com.fooddelivery.identity.ContractTestBase</baseClassForTests>
                     <baseClassMappings>
+                        <baseClassMapping><contractPackageRegex>.*dinein.*</contractPackageRegex><baseClassFQN>com.fooddelivery.identity.contract.DineInConsentHttpBase</baseClassFQN></baseClassMapping>
                         <baseClassMapping><contractPackageRegex>.*messaging.*</contractPackageRegex><baseClassFQN>com.fooddelivery.identity.contract.OrganisationMessagingBase</baseClassFQN></baseClassMapping>
                         <baseClassMapping><contractPackageRegex>.*http.*</contractPackageRegex><baseClassFQN>com.fooddelivery.identity.contract.OrganisationHttpBase</baseClassFQN></baseClassMapping>
                     </baseClassMappings>
