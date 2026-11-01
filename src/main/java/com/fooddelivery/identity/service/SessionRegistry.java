@@ -108,9 +108,6 @@ public class SessionRegistry {
                                         switch (purpose) {
                                             case LOGIN -> absoluteLifetime;
                                             case ADMIN -> adminLifetime;
-                                            case DINE_IN ->
-                                                    throw new IllegalArgumentException(
-                                                            "A dine-in code never opens a session");
                                         }))
                         .lastActive(now.toEpochMilli())
                         .build());

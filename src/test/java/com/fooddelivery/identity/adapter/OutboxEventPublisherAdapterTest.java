@@ -28,20 +28,26 @@ class OutboxEventPublisherAdapterTest {
         } finally { logger.detachAppender(logs); logs.stop(); }
     }
 
-    @Test void dineInConsentSmsCarriesOnlyTheCodeUnderItsOwnTemplate() throws Exception {
+    @Test void dineInSeatedSmsCarriesNoParameterAndIsSentOncePerSessionAndGuest() throws Exception {
         var repository = mock(OutboxEventRepository.class);
         var mapper = new ObjectMapper();
-        var consentId = java.util.UUID.randomUUID();
-        new OutboxEventPublisherAdapter(repository, mapper).publishDineInConsentCode(consentId, "8999123456", "482913");
+        var session = java.util.UUID.randomUUID();
+        var guest = java.util.UUID.randomUUID();
+        when(repository.findByIdempotencyKey("dine-in-seated:" + session + ":" + guest)).thenReturn(java.util.Optional.empty());
+        new OutboxEventPublisherAdapter(repository, mapper).publishDineInSeated(session, guest, "8999123456");
         var capture = org.mockito.ArgumentCaptor.forClass(OutboxEventEntity.class);
         verify(repository).save(capture.capture());
         var event = capture.getValue(); var body = mapper.readTree(event.getPayload());
-        assertEquals(consentId.toString(), event.getAggregateId());
-        assertEquals("dine-in-consent:" + consentId, event.getIdempotencyKey());
-        assertEquals("DINE_IN_CONSENT", body.get("eventName").asText());
+        assertEquals(session.toString(), event.getAggregateId());
+        assertEquals("dine-in-seated:" + session + ":" + guest, event.getIdempotencyKey());
+        assertEquals("DINE_IN_SEATED", body.get("eventName").asText());
         assertEquals("SMS", body.get("channel").asText());
         assertEquals("8999123456", body.get("explicitRecipient").asText());
         assertNull(body.get("userId").textValue());
-        assertEquals(java.util.List.of("482913"), mapper.convertValue(body.get("templateParams"), java.util.List.class));
+        assertEquals(java.util.List.of(), mapper.convertValue(body.get("templateParams"), java.util.List.class));
+
+        when(repository.findByIdempotencyKey("dine-in-seated:" + session + ":" + guest)).thenReturn(java.util.Optional.of(event));
+        new OutboxEventPublisherAdapter(repository, mapper).publishDineInSeated(session, guest, "8999123456");
+        verify(repository, times(1)).save(any());
     }
 }

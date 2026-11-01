@@ -71,19 +71,23 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
 
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
-    public void publishDineInConsentCode(UUID consentId, String phoneNumber, String code) {
+    public void publishDineInSeated(UUID sessionId, UUID guestUserId, String phoneNumber) {
         NotificationRequestEvent event = NotificationRequestEvent.builder()
-                .eventId("dine-in-consent:" + consentId)
+                .eventId("dine-in-seated:" + sessionId + ":" + guestUserId)
                 .explicitRecipient(phoneNumber)
                 .channel(com.fooddelivery.common.enums.ChannelType.SMS)
-                .eventName(com.fooddelivery.common.constants.NotificationTemplate.DINE_IN_CONSENT)
-                .templateParams(java.util.List.of(code))
+                .eventName(com.fooddelivery.common.constants.NotificationTemplate.DINE_IN_SEATED)
+                .templateParams(java.util.List.of())
                 .build();
+        // The outbox idempotency key is unique: the same guest added to the same table again is told once.
+        if (outboxEventRepository.findByIdempotencyKey(event.getEventId()).isPresent()) {
+            return;
+        }
         try {
             outboxEventRepository.save(OutboxEventEntity.builder()
                     .id(UUID.randomUUID())
                     .aggregateType(com.fooddelivery.common.constants.AggregateType.NOTIFICATION)
-                    .aggregateId(consentId.toString())
+                    .aggregateId(sessionId.toString())
                     .eventType(com.fooddelivery.common.constants.EventType.NOTIFICATION_REQUEST)
                     .idempotencyKey(event.getEventId())
                     .payload(objectMapper.writeValueAsString(event))
@@ -91,7 +95,7 @@ public class OutboxEventPublisherAdapter implements EventPublisherPort {
                     .status(com.fooddelivery.common.enums.OutboxStatus.UNPROCESSED)
                     .build());
         } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
-            throw new IllegalStateException("Dine-in consent notification could not be stored", failure);
+            throw new IllegalStateException("Dine-in seated notification could not be stored", failure);
         }
     }
 

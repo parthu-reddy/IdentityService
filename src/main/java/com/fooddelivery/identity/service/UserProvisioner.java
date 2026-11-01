@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * The one place an account is created: by phone, on its first sign-in or when a dine-in guest consents to an order
- * placed for that phone. Both callers get the same status check, so a deactivated account is never revived.
+ * The one place an account is created: by phone, on its first sign-in or when a waiter seats a dine-in guest by that
+ * phone. Both callers get the same status check, so a deactivated account is never revived.
  */
 @Service
 @lombok.RequiredArgsConstructor
@@ -20,7 +20,7 @@ public class UserProvisioner {
 
     public record Provisioned(AppUser user, boolean created) {}
 
-    // noRollbackFor: a dine-in consent records its refusal in the caller's transaction after this throws.
+    // noRollbackFor: a dine-in guest link records its refusal in the caller's transaction after this throws.
     @Transactional(propagation = Propagation.MANDATORY, noRollbackFor = AccountUnavailableException.class)
     public Provisioned findOrCreate(String phone) {
         var existing = users.findByPhoneNumber(phone);

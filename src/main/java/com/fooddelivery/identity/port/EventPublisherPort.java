@@ -14,6 +14,9 @@ public interface EventPublisherPort {
      */
     void publishOrganisationInvitation(UUID invitationId, String phoneNumber, UUID existingUserId, OrganisationRole role);
 
-    /** SMSes a dine-in guest the code they read to the waiter, inside the requesting transaction. Code only. */
-    void publishDineInConsentCode(UUID consentId, String phoneNumber, String code);
+    /**
+     * SMSes a dine-in guest that a waiter seated them (no parameters), inside the linking transaction; once per session and
+     * guest, so adding the same guest again sends nothing.
+     */
+    void publishDineInSeated(UUID sessionId, UUID guestUserId, String phoneNumber);
 }

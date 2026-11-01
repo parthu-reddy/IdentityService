@@ -99,7 +99,7 @@ public class OpenApiGenerationTest {
     @MockBean private com.fooddelivery.identity.organisation.service.OrganisationInvitationService organisationInvitationService;
     @MockBean private com.fooddelivery.identity.organisation.service.LocalOrganisationAccessPolicy localOrganisationAccessPolicy;
     @MockBean private com.fooddelivery.identity.entitlement.service.PortalService portalService;
-    @MockBean private com.fooddelivery.identity.dinein.service.DineInConsentService dineInConsentService;
+    @MockBean private com.fooddelivery.identity.dinein.service.DineInGuestService dineInGuestService;
 
     @org.springframework.context.annotation.Configuration
     // Relabels structured responses from */* to application/json. Without it every

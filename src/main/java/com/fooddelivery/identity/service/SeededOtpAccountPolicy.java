@@ -28,8 +28,6 @@ public final class SeededOtpAccountPolicy {
             case LOGIN -> inRange(phone,CUSTOMER_FIRST,CUSTOMER_LAST) || inRange(phone,RESTAURANT_FIRST,RESTAURANT_LAST)
                 || inRange(phone,DELIVERY_FIRST,DELIVERY_LAST) || inRange(phone,ADMIN_FIRST,ADMIN_LAST);
             case ADMIN -> inRange(phone, ADMIN_FIRST, ADMIN_LAST);
-            // A guest's consent code is read aloud to a waiter; no harness may fetch one.
-            case DINE_IN -> false;
         };
     }
 

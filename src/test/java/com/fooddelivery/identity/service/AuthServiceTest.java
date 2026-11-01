@@ -98,19 +98,6 @@ class AuthServiceTest {
         user.setActive(false);refuses(401,this::login);assertNull(stored.get("USER_SESSIONS:"+user.getId()));
         verify(users,never()).saveAndFlush(any());
     }
-    @Test void dineInCodeCannotSignIn() {
-        stored.remove("OTP:"+phone+":LOGIN"); // no sign-in code outstanding, only the guest's dine-in consent
-        var consents=new com.fooddelivery.identity.dinein.service.DineInConsentService(new com.fooddelivery.identity.dinein.InMemoryDineInConsentStore(),
-                cache,events,new UserProvisioner(users),audit,clock);
-        var consent=consents.request(new com.fooddelivery.identity.dinein.dto.DineInConsentRequests.DineInConsentRequest(phone,UUID.randomUUID(),UUID.randomUUID(),UUID.randomUUID()));
-        var sent=org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(events).publishDineInConsentCode(eq(consent.consentId()),eq(phone),sent.capture());
-        var ex=refuses(401,() -> auth.createSession(new SessionRequest(phone,sent.getValue(),"Test device","macOS","Chromium",null)));
-        assertEquals("Invalid or expired code",ex.getReason());
-        verify(users,never()).saveAndFlush(any());assertNull(stored.get("USER_SESSIONS:"+user.getId()));
-        assertThrows(IllegalArgumentException.class,() -> registry.prepare(user.getId(),OtpPurpose.DINE_IN,"d","macOS","Chromium",null),
-                "a dine-in purpose never opens a session");
-    }
     @Test void concurrentlyConsumedCodeCannotCreateAnotherSession() {
         when(cache.consumeOtp(anyString(),anyString())).thenReturn(false);refuses(401,this::login);
         assertNull(stored.get("USER_SESSIONS:"+user.getId()));

@@ -2,12 +2,12 @@ package com.fooddelivery.identity.dinein.service;
 
 import org.springframework.http.HttpStatus;
 
-/** A refused consent request or verification, with the machine-readable code dining branches on. */
-public class DineInConsentException extends RuntimeException {
+/** A refused guest link, with the machine-readable code dining branches on. */
+public class DineInGuestException extends RuntimeException {
     private final HttpStatus status;
     private final String code;
 
-    public DineInConsentException(HttpStatus status, String code, String message) {
+    public DineInGuestException(HttpStatus status, String code, String message) {
         super(message);
         this.status = status;
         this.code = code;

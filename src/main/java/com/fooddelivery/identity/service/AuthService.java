@@ -249,9 +249,6 @@ public class AuthService {
                             RedisKeyConstants.RL_ADMIN_OTP_VERIFY + phone,
                             5,
                             5);
-            case DINE_IN ->
-                    throw new IllegalArgumentException(
-                            "Dine-in codes are issued by DineInConsentService and never sign in");
         };
     }
 
