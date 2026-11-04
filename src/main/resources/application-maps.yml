@@ -56,3 +56,11 @@ management:
   tracing:
     sampling:
       probability: 0.05
+# SQL exception text can contain unique-key values supplied by a caller. Keep
+# the fixed Maps operation/stage/cause log; suppress ORM SQL/value diagnostics.
+logging:
+  level:
+    org.hibernate.SQL: "OFF"
+    org.hibernate.orm.jdbc.bind: "OFF"
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: "OFF"
+    org.hibernate.event.internal.DefaultLoadEventListener: "OFF"

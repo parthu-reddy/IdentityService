@@ -49,6 +49,7 @@ class MapsIdentityTransportTest {
     final Map<String, String> stored = new ConcurrentHashMap<>();
     final SimpleMeterRegistry metrics = new SimpleMeterRegistry();
     WebServer server; MapsIdentityFilter filter; MapsSessionTokens tokens;
+    boolean nativeStores;
     MapsIdentityProperties properties; String credential; AppUser user; SessionInfo session;
 
     @BeforeAll static void certificates() throws Exception {
@@ -111,8 +112,11 @@ class MapsIdentityTransportTest {
         when(users.findById(user.getId())).thenReturn(Optional.of(user)); credential = tokens.issue(user, session);
         when(users.mapsAuthorityIsPrimary()).thenReturn(true);
         var current = new MapsCurrentSessionService(users, new SessionRegistry(cache, json, clock), tokens, properties, clock);
+        startServer(current, mock(AuthService.class));
+    }
+    void startServer(MapsCurrentSessionService current, AuthService auth) {
         var validator = jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();
-        var operations = new MapsIdentityOperations(mock(AuthService.class), current, properties, validator);
+        var operations = new MapsIdentityOperations(auth, current, properties, validator);
         filter = new MapsIdentityFilter(properties, new MapsPeerAuthenticator(properties, clock), operations, metrics);
         var factory = new TomcatServletWebServerFactory(0);
         var ssl = new Ssl(); ssl.setEnabled(true); ssl.setKeyStore(temp.resolve("server.p12").toUri().toString());
@@ -150,6 +154,83 @@ class MapsIdentityTransportTest {
         assertEquals(401, send(peer, "/internal/maps/v1/validate", body()).statusCode());
         stored.remove("BLACKLIST:SESSION:" + session.getSessionId()); user.setActive(false);
         assertEquals(401, send(peer, "/internal/maps/v1/validate", body()).statusCode());
+    }
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="MAPS_IDENTITY_NATIVE_CONFIG", matches=".+")
+    void realPostgresAndRedisDriveOtpCurrentAuthorityAndPassiveReadSemantics() throws Exception {
+        stop();
+        try (var nativeAuthority = new MapsNativeAuthority(Path.of(System.getenv("MAPS_IDENTITY_NATIVE_CONFIG")), properties, tokens, clock, json, metrics)) {
+            nativeStores=true;
+            properties.setConcurrency(4);
+            startServer(nativeAuthority.current(), nativeAuthority.auth());
+            String phone = "9000000001";
+            var input = new HashMap<String,Object>(Map.of("version",1,"audience","maps-editor","nonce","n".repeat(43),"phone_number",phone));
+            assertEquals(200,send(peer,"/internal/maps/v1/otp",json.writeValueAsString(input)).statusCode());
+            input.put("otp",nativeAuthority.deliveredOtp());
+            var created=send(peer,"/internal/maps/v1/session",json.writeValueAsString(input));
+            assertEquals(200,created.statusCode());
+            credential=json.readTree(created.body()).path("credential").asText();
+            var verified=tokens.verify(credential,false);
+            if(System.getenv("MAPS_GO_CONTRACT_PROBE")!=null) probeGo(verified.subject().toString(),verified.sessionId(),true);
+            String sessions="USER_SESSIONS:"+verified.subject();
+            var redis=nativeAuthority.redis();
+            var otpInput=new HashMap<>(input);otpInput.remove("otp");
+            assertEquals(200,send(peer,"/internal/maps/v1/otp",json.writeValueAsString(otpInput)).statusCode());
+            otpInput.put("otp",nativeAuthority.deliveredOtp());
+            String sharedProof=json.writeValueAsString(otpInput);
+            try(var executor=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+                var barrier=new java.util.concurrent.CountDownLatch(1);
+                var first=executor.submit(()->{barrier.await();return send(peer,"/internal/maps/v1/session",sharedProof).statusCode();});
+                var second=executor.submit(()->{barrier.await();return send(peer,"/internal/maps/v1/session",sharedProof).statusCode();});
+                barrier.countDown();
+                var statuses=new ArrayList<>(List.of(first.get(5,java.util.concurrent.TimeUnit.SECONDS),second.get(5,java.util.concurrent.TimeUnit.SECONDS)));
+                Collections.sort(statuses);assertEquals(List.of(200,401),statuses,"OTP consumed more than once across transactions");
+            }
+            assertEquals(2,json.readTree(redis.opsForValue().get(sessions)).size(),"Failed concurrent login left a person-session");
+            String before=redis.opsForValue().get(sessions);
+            Long ttl=redis.getExpire(sessions,java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertNotNull(before);assertNotNull(ttl);assertTrue(ttl>0);
+            for(int i=0;i<3;i++) assertEquals(200,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+            assertEquals(before,redis.opsForValue().get(sessions),"Passive validation wrote registry/activity");
+            assertTrue(redis.getExpire(sessions,java.util.concurrent.TimeUnit.MILLISECONDS)<=ttl,"Passive validation extended TTL");
+            assertEquals(401,send(peer,"/internal/maps/v1/session",json.writeValueAsString(input)).statusCode(),"Consumed OTP replay");
+            var jdbc=nativeAuthority.jdbc();
+            assertThrows(org.springframework.dao.DataAccessException.class,()->nativeAuthority.runtimeJdbc().execute("CREATE TABLE forbidden_identity_schema_change(x integer)"));
+            assertThrows(org.springframework.dao.DataAccessException.class,()->nativeAuthority.runtimeJdbc().execute("DELETE FROM flyway_schema_history"));
+            jdbc.update("UPDATE users SET is_active=false WHERE id=?",verified.subject());
+            assertEquals(401,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+            if(System.getenv("MAPS_GO_CONTRACT_PROBE")!=null) probeGo(verified.subject().toString(),verified.sessionId(),false);
+            jdbc.update("UPDATE users SET is_active=true,entitlements_version=entitlements_version+1 WHERE id=?",verified.subject());
+            assertEquals(401,send(peer,"/internal/maps/v1/validate",body()).statusCode(),"Old account version cached");
+            jdbc.update("UPDATE users SET entitlements_version=0 WHERE id=?",verified.subject()); // isolated authority fixture only
+            assertEquals(200,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+            jdbc.execute("ALTER TABLE users RENAME TO users_owned_outage");
+            try { assertEquals(503,send(peer,"/internal/maps/v1/validate",body()).statusCode(),"Missing database authority used a cached positive"); }
+            finally { jdbc.execute("ALTER TABLE users_owned_outage RENAME TO users"); }
+            var refreshed=send(peer,"/internal/maps/v1/refresh",body());assertEquals(200,refreshed.statusCode());
+            String next=json.readTree(refreshed.body()).path("credential").asText();
+            assertEquals(verified.sessionId(),tokens.verify(next,false).sessionId());
+            assertEquals(verified.expiresAt(),tokens.verify(next,false).expiresAt(),"Refresh extended absolute lifetime");
+            redis.opsForValue().set("BLACKLIST:SESSION:"+verified.sessionId(),"true");
+            assertEquals(401,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+            redis.delete("BLACKLIST:SESSION:"+verified.sessionId());
+            redis.opsForValue().set(sessions,"corrupt-private-fixture");
+            var corrupt=send(peer,"/internal/maps/v1/validate",body());assertEquals(503,corrupt.statusCode());
+            assertFalse(corrupt.body().contains("corrupt-private-fixture"));
+            redis.opsForValue().set(sessions,before,Duration.ofMinutes(10));
+            try(var executor=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+                var barrier=new java.util.concurrent.CountDownLatch(1);
+                var refresh=executor.submit(()->{barrier.await();return send(peer,"/internal/maps/v1/refresh",body()).statusCode();});
+                var logout=executor.submit(()->{barrier.await();return send(peer,"/internal/maps/v1/logout",body()).statusCode();});
+                barrier.countDown();
+                assertEquals(200,logout.get(5,java.util.concurrent.TimeUnit.SECONDS));
+                assertTrue(List.of(200,401).contains(refresh.get(5,java.util.concurrent.TimeUnit.SECONDS)),"Refresh/revoke row-lock ordering");
+            }
+            assertEquals(401,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+            // An unavailable actual cache cannot be replaced by a positive process cache.
+            nativeAuthority.stopRedisClient();
+            assertEquals(503,send(peer,"/internal/maps/v1/validate",body()).statusCode());
+        }
     }
     @Test void trustedButUnrelatedCertificateAndMissingCertificateCannotCallAuthority() throws Exception {
         assertEquals(403, send(unrelated, "/internal/maps/v1/validate", body()).statusCode());
@@ -196,6 +277,11 @@ class MapsIdentityTransportTest {
     @Test
     @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="MAPS_GO_CONTRACT_PROBE", matches=".+")
     void realGoConsumerReadsActualJavaTlsCurrentDecisions() throws Exception {
+        for(boolean active:List.of(true,false)) {
+            user.setActive(active);probeGo(user.getId().toString(),session.getSessionId(),active);
+        }
+    }
+    void probeGo(String subject, String sessionID, boolean active) throws Exception {
         var keys = KeyStore.getInstance("PKCS12");
         try(var input=Files.newInputStream(temp.resolve("peer.p12"))){keys.load(input,PASSWORD);}
         Path ca=temp.resolve("go-ca.pem"),cert=temp.resolve("go-peer.pem"),key=temp.resolve("go-peer-key.pem"),fixture=temp.resolve("go-fixture.json");
@@ -203,12 +289,16 @@ class MapsIdentityTransportTest {
         Files.writeString(cert,pem(keys.getCertificate("peer").getEncoded(),"CERTIFICATE"));
         Files.writeString(key,pem(keys.getKey("peer",PASSWORD).getEncoded(),"PRIVATE KEY"));
         Files.setPosixFilePermissions(key,PosixFilePermissions.fromString("rw-------"));
-        for(boolean active:List.of(true,false)){
-            user.setActive(active);
-            Files.writeString(fixture,json.writeValueAsString(Map.of("client",Map.of("url","https://localhost:"+server.getPort(),
+
+            var material=new HashMap<String,Object>(Map.of("client",Map.of("url","https://localhost:"+server.getPort(),
                     "authority",properties.getAuthority(),"audience",properties.getAudience(),"ca_file",ca.toString(),
                     "certificate_file",cert.toString(),"key_file",key.toString()),"credential",credential,
-                    "subject",user.getId().toString(),"session",session.getSessionId(),"active",active)));
+                    "subject",subject,"session",sessionID,"active",active));
+            if(nativeStores && System.getenv("MAPS_GO_RELAY_DSN")!=null) {
+                material.put("relay_dsn_file",System.getenv("MAPS_GO_RELAY_DSN"));
+                material.put("otp_delivery_file",System.getenv("MAPS_GO_OTP_DELIVERY"));
+            }
+            Files.writeString(fixture,json.writeValueAsString(material));
             Files.setPosixFilePermissions(fixture,PosixFilePermissions.fromString("rw-------"));
             var builder=new ProcessBuilder(System.getenv("MAPS_GO_CONTRACT_PROBE"),"-test.run=^TestJavaProducerContract$","-test.v");
             builder.environment().put("MAPS_JAVA_CONTRACT_FIXTURE",fixture.toString());builder.redirectErrorStream(true);
@@ -217,6 +307,6 @@ class MapsIdentityTransportTest {
             if(!completed)process.destroyForcibly();
             String result=new String(process.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
             assertTrue(completed,"owned Go probe deadline");assertEquals(0,process.exitValue(),result);
-        }
+
     }
 }
