@@ -40,3 +40,25 @@ do not trust an unrelated installed SNAPSHOT or copy generated schemas to hide
 that drift. The companion handoff supplies a reproducible JDK 21 runner and
 first-failure/current artifact identities. No production secrets, admission,
 privileged mode, deployment or recovery reopening is supplied here.
+
+## Native authority continuation
+
+The owning TLS test now has an explicit disposable PostgreSQL/Redis variant using
+production Flyway/JPA/transaction/Redis code and a restricted non-superuser runtime
+role. It checks concurrent OTP consumption/replay, passive TTL/activity non-renewal,
+current disable/version/revocation, refresh/logout ordering, corrupt/unavailable
+authority and denial of schema/migration writes. The real Go relay joins this
+fixture for OTP/login/current checks, cross-adapter persistence, refresh and confirmed
+Java logout. Its gateway request boundary is the existing in-process test fixture;
+notifications and unused entitlement/audit ports remain test doubles.
+
+The companion PR supplies `tools/native_authority.py` with pinned capped ARM64
+images, protected disposable configuration, private logs, exact cleanup and optional
+`--clean-verify`. A complete clean run passed 268 tests with no failures/errors/skips.
+Default invocations explicitly skip the native case unless the owned native config
+is supplied. See the current source-bound evidence in
+[the review package](https://github.com/parthu-reddy/RandomDocuments/pull/6).
+
+The Maps profile disables raw ORM SQL/bind/exception diagnostics because database
+errors can echo caller-supplied unique values. Fixed Maps operation/stage/cause logs
+remain available. Effective external logging configuration is still an operator gate.
