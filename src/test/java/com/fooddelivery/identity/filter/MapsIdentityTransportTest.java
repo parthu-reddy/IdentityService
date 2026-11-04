@@ -180,6 +180,7 @@ class MapsIdentityTransportTest {
         assertEquals("UNAVAILABLE", json.readTree(result.body()).path("code").asText()); assertFalse(result.body().contains("DO_NOT_DISCLOSE"));
     }
     @Test void aSlowUploadUsesTheSameWholeRequestDeadline() throws Exception {
+        for(int attempt=0;attempt<3;attempt++)
         try (var socket = (SSLSocket) peer.sslContext().getSocketFactory().createSocket("localhost", server.getPort())) {
             socket.setSoTimeout(3500); socket.startHandshake(); long started = System.nanoTime();
             socket.getOutputStream().write(("POST /internal/maps/v1/validate HTTP/1.1\r\nHost: localhost\r\n"

@@ -104,14 +104,17 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
         if (!admitted.tryAcquire()) {
             write(response, OVERLOADED, null, operation, started, correlation); async.complete(); return;
         }
-        async.setTimeout(properties.getRequestTimeout().toMillis());
+        // The owned timer is the actual deadline. A later servlet backup avoids two
+        // completion callbacks racing at the same boundary and triggering Tomcat's
+        // automatic 500 dispatch while our finite response is being written.
+        async.setTimeout(properties.getRequestTimeout().toMillis() + 2000);
         var done = new AtomicBoolean();
         var future = new AtomicReference<Future<?>>();
         var timer = new AtomicReference<Future<?>>();
         long deadline = started + properties.getRequestTimeout().toNanos();
         class Completion {
             void cancel() { Future<?> task = future.get(); if (task != null) task.cancel(true); }
-            void finish(MapsIdentityException.Code code, Map<String, Object> value) {
+            synchronized void finish(MapsIdentityException.Code code, Map<String, Object> value) {
                 if (!done.compareAndSet(false, true)) return;
                 if (code == null && System.nanoTime() >= deadline) { code = UNAVAILABLE; value = null; }
                 Future<?> expiry = timer.get(); if (expiry != null) expiry.cancel(false);
