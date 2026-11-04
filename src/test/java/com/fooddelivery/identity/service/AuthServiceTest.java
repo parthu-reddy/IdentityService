@@ -176,6 +176,17 @@ class AuthServiceTest {
         stored.put("USER_SESSIONS:"+user.getId(),"[] broken");refuses(503,this::login);
         verify(cache,never()).consumeOtp(anyString(),anyString());
     }
+    @Test void ambiguousSessionStateCannotRefreshOrConsumeANewLoginCode() throws Exception {
+        var row=session(OtpPurpose.LOGIN,"macOS","Chromium",now.plusSeconds(60));
+        String json=mapper.writeValueAsString(List.of(row));
+        stored.put("USER_SESSIONS:"+user.getId(),json.replace("\"purpose\":\"LOGIN\"","\"purpose\":\"ADMIN\",\"purpose\":\"LOGIN\""));
+        refuses(503,()->auth.refresh(user.getId(),row.getSessionId()));
+        refuses(503,this::login);
+        assertEquals(code,stored.get("OTP:"+phone+":LOGIN"));
+        verify(cache,never()).consumeOtp(anyString(),anyString());
+        verify(cache,never()).put(anyString(),anyString(),anyLong());
+        verify(cache,never()).putVersions(anyMap(),any());
+    }
     @Test void mockedRateLimitsHaveIndependentKeysAndDenyBeforeSensitiveActions() {
         when(cache.increment("RATELIMIT:INITIATE:"+phone,10)).thenReturn(11L);refuses(429,()->auth.initiateLogin(phone));verifyNoInteractions(events);
         when(cache.increment("RATELIMIT:VERIFY:"+phone,5)).thenReturn(6L);refuses(429,this::login);
