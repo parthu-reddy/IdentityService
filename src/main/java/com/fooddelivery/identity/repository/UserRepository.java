@@ -6,6 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<AppUser, UUID> {
+    // Maps current authority may not be served from a lagging read replica.
+    @org.springframework.data.jpa.repository.Query(value="SELECT NOT pg_catalog.pg_is_in_recovery()", nativeQuery=true)
+    boolean mapsAuthorityIsPrimary();
     Optional<AppUser> findByPhoneNumber(String phoneNumber);
     java.util.List<AppUser> findAllByPhoneNumberIn(java.util.Collection<String> phoneNumbers);
     @org.springframework.data.jpa.repository.Query("""

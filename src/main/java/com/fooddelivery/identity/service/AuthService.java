@@ -44,6 +44,9 @@ public class AuthService {
     private final AuditTrail audit;
     private final SecureRandom random = new SecureRandom();
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<MapsSessionTokens> mapsSessionTokens;
+
     @Value("${jwt.private-key.path:classpath:certs/private.pem}")
     private Resource privateKeyResource;
 
@@ -64,6 +67,9 @@ public class AuthService {
 
     @Value("${identity.auth.verify.window-minutes:5}")
     private int verifyWindowMinutes = 5;
+
+    @Value("${identity.maps.otp-max-per-day:1000}")
+    private int mapsOtpMaxPerDay = 1000;
 
     private PrivateKey privateKey;
 
@@ -93,8 +99,28 @@ public class AuthService {
         sendOtp(validPhone(phone), OtpPurpose.LOGIN);
     }
 
+    public void initiateMapsLogin(String phone) {
+        phone = validPhone(phone);
+        if (mapsOtpMaxPerDay < 1 || mapsOtpMaxPerDay > 10000)
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+        // Shared atomic Redis admission bounds notification spending across peers,
+        // replicas and phone rotations, in addition to the existing per-phone limit.
+        limit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
+        initiateLogin(phone);
+    }
+
     @Transactional
     public SessionResponse createSession(SessionRequest request) {
+        return createPersonSession(request, null);
+    }
+
+    /** Dedicated peer-authenticated Maps entry; the ordinary credential profile is unchanged. */
+    @Transactional
+    public SessionResponse createMapsSession(SessionRequest request) {
+        return createPersonSession(request, requireMapsTokens());
+    }
+
+    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens) {
         String phone = validPhone(request.phoneNumber());
         verifyOtp(phone, request.otp(), OtpPurpose.LOGIN);
         var provisioned = provisioner.findOrCreate(phone);
@@ -107,12 +133,53 @@ public class AuthService {
                         request.os(),
                         request.browser(),
                         request.replaceSessionId());
-        var roles = entitlements.rolesFor(user.getId());
+        var roles = mapsTokens == null ? entitlements.rolesFor(user.getId()) : List.<RoleName>of();
+        if (mapsTokens != null) {
+            // The Maps relay is absolute-lifetime bounded. An unclaimed/lost login must not
+            // occupy the shared person's session allowance for the ordinary 30-day lifetime.
+            var created = candidate.get(candidate.size() - 1);
+            var limit = clock.instant().plus(Duration.ofMinutes(15));
+            if (limit.isBefore(created.getAbsoluteExpiresAt())) created.setAbsoluteExpiresAt(limit);
+        }
         consumeOtp(phone, request.otp(), OtpPurpose.LOGIN);
         sessions.commitNew(user.getId(), candidate);
         cache.delete("RATELIMIT:VERIFY:" + phone);
         return new SessionResponse(
-                token(user, roles, candidate.get(candidate.size() - 1)), provisioned.created());
+                mapsTokens == null ? token(user, roles, candidate.get(candidate.size() - 1))
+                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1)), provisioned.created());
+    }
+
+    @Transactional
+    public SessionResponse refreshMaps(String credential) {
+        var tokens = requireMapsTokens();
+        var verified = tokens.verify(credential, false);
+        var user = provisioner.lockActive(verified.subject());
+        var session = sessions.require(user.getId(), verified.sessionId());
+        if (user.getEntitlementsVersion() != verified.version() || session.getPurpose() != OtpPurpose.LOGIN
+                || verified.expiresAt().isAfter(session.getAbsoluteExpiresAt())
+                || verified.issuedAt().isBefore(session.getCreatedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)))
+            throw new com.fooddelivery.identity.exception.MapsIdentityException(
+                    com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE);
+        limit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
+        String credentialResult = tokens.issue(user, session);
+        sessions.touch(user.getId(), session.getSessionId());
+        return new SessionResponse(credentialResult, false);
+    }
+
+    @Transactional
+    public void logoutMaps(String credential) {
+        var verified = requireMapsTokens().verify(credential, true);
+        // Same DB row lock as all person-session refresh/revoke transitions. Do not require an
+        // active account/version before revoking: disabled/expired sessions must still sign out.
+        users.lockById(verified.subject());
+        sessions.remove(verified.subject(), verified.sessionId(), false);
+    }
+
+    private MapsSessionTokens requireMapsTokens() {
+        var tokens = mapsSessionTokens == null ? null : mapsSessionTokens.getIfAvailable();
+        if (tokens == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Authentication is temporarily unavailable");
+        return tokens;
     }
 
     @Transactional

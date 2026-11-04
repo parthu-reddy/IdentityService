@@ -187,9 +187,35 @@ class AuthServiceTest {
         verify(cache,never()).put(anyString(),anyString(),anyLong());
         verify(cache,never()).putVersions(anyMap(),any());
     }
+    @Test void mapsLoginAndRefreshUseScopedCredentialsAndKeepTheSamePersonSession() throws Exception {
+        var temp=java.nio.file.Files.createTempDirectory("maps-auth-fixture-");
+        try {
+            var pair=KeyPairGenerator.getInstance("RSA").generateKeyPair();
+            var properties=MapsSessionTokensTest.configured(temp,pair);
+            var tokens=new MapsSessionTokens(properties,clock,new org.springframework.core.io.DefaultResourceLoader());
+            var provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+            when(provider.getIfAvailable()).thenReturn(tokens);ReflectionTestUtils.setField(auth,"mapsSessionTokens",provider);
+            String credential=auth.createMapsSession(request("macOS","Chromium",null)).token();
+            var current=tokens.verify(credential,false);assertEquals(user.getId(),current.subject());
+            String next=auth.refreshMaps(credential).token();assertEquals(current.sessionId(),tokens.verify(next,false).sessionId());
+            user.setEntitlementsVersion(user.getEntitlementsVersion()+1);
+            assertThrows(com.fooddelivery.identity.exception.MapsIdentityException.class,()->auth.refreshMaps(next));
+            user.setEntitlementsVersion(user.getEntitlementsVersion()-1);
+            auth.logoutMaps(next);assertEquals("true",stored.get("BLACKLIST:SESSION:"+current.sessionId()));
+            assertThrows(org.springframework.web.server.ResponseStatusException.class,()->auth.refreshMaps(next));
+        } finally {
+            try(var paths=java.nio.file.Files.walk(temp)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}
+        }
+    }
     @Test void mockedRateLimitsHaveIndependentKeysAndDenyBeforeSensitiveActions() {
         when(cache.increment("RATELIMIT:INITIATE:"+phone,10)).thenReturn(11L);refuses(429,()->auth.initiateLogin(phone));verifyNoInteractions(events);
         when(cache.increment("RATELIMIT:VERIFY:"+phone,5)).thenReturn(6L);refuses(429,this::login);
         assertNull(stored.get("OTP:"+phone+":LOGIN"));verify(users,never()).saveAndFlush(any());
+    }
+    @Test void mapsNotificationBudgetIsSharedAndFailsBeforeAnyNotification() {
+        when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(1001L);
+        refuses(429,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
+        when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(null);
+        refuses(503,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
     }
 }
