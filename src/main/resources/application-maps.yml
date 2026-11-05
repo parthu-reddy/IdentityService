@@ -53,6 +53,9 @@ management:
   server:
     port: ${MAPS_IDENTITY_MANAGEMENT_PORT:9086}
     address: 127.0.0.1
+    # Otherwise it inherits server.ssl and its client-auth: need, so nothing on this loopback port could check health.
+    ssl:
+      enabled: false
   tracing:
     sampling:
       probability: 0.05

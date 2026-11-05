@@ -28,6 +28,14 @@ class MapsIdentityConfigurationTest {
                 "org.hibernate.engine.jdbc.spi.SqlExceptionHelper","org.hibernate.event.internal.DefaultLoadEventListener"))
             assertEquals(org.springframework.boot.logging.LogLevel.OFF,levels.get(logger));
     }
+    @Test void healthOnTheLoopbackPortNeedsNoClientCertificate() throws Exception {
+        var environment=new org.springframework.core.env.StandardEnvironment();
+        for(var source:new org.springframework.boot.env.YamlPropertySourceLoader().load("maps",
+                new org.springframework.core.io.ClassPathResource("application-maps.yml")))
+            environment.getPropertySources().addLast(source);
+        assertEquals("127.0.0.1",environment.getProperty("management.server.address"));
+        assertEquals("false",environment.getProperty("management.server.ssl.enabled"));
+    }
     @Test void mapsSessionReadsAreExplicitlyPrimaryOnly() {
         var builder=LettuceClientConfiguration.builder().readFrom(ReadFrom.REPLICA_PREFERRED);
         new MapsIdentityConfiguration().mapsPrimarySessionReads().customize(builder);
