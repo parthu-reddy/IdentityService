@@ -44,6 +44,9 @@ public class AuthService {
     private final AuditTrail audit;
     private final SecureRandom random = new SecureRandom();
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<MapsSessionTokens> mapsSessionTokens;
+
     @Value("${jwt.private-key.path:classpath:certs/private.pem}")
     private Resource privateKeyResource;
 
@@ -64,6 +67,9 @@ public class AuthService {
 
     @Value("${identity.auth.verify.window-minutes:5}")
     private int verifyWindowMinutes = 5;
+
+    @Value("${identity.maps.otp-max-per-day:1000}")
+    private int mapsOtpMaxPerDay = 1000;
 
     private PrivateKey privateKey;
 
@@ -93,8 +99,32 @@ public class AuthService {
         sendOtp(validPhone(phone), OtpPurpose.LOGIN);
     }
 
+    public void initiateMapsLogin(String phone) {
+        phone = validPhone(phone);
+        if (mapsOtpMaxPerDay < 1 || mapsOtpMaxPerDay > 10000)
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+        // Shared atomic Redis admission bounds notification spending across peers,
+        // replicas and phone rotations. It is charged only for a notification the
+        // per-phone limit admits: a refused request sends nothing, so repeating one
+        // phone must not exhaust the budget for every other Maps sign-in.
+        var limits = limits(phone, OtpPurpose.LOGIN);
+        limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        limit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
+        deliverOtp(phone, OtpPurpose.LOGIN);
+    }
+
     @Transactional
     public SessionResponse createSession(SessionRequest request) {
+        return createPersonSession(request, null);
+    }
+
+    /** Dedicated peer-authenticated Maps entry; the ordinary credential profile is unchanged. */
+    @Transactional
+    public SessionResponse createMapsSession(SessionRequest request) {
+        return createPersonSession(request, requireMapsTokens());
+    }
+
+    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens) {
         String phone = validPhone(request.phoneNumber());
         verifyOtp(phone, request.otp(), OtpPurpose.LOGIN);
         var provisioned = provisioner.findOrCreate(phone);
@@ -106,13 +136,58 @@ public class AuthService {
                         request.deviceInfo(),
                         request.os(),
                         request.browser(),
-                        request.replaceSessionId());
-        var roles = entitlements.rolesFor(user.getId());
+                        request.replaceSessionId(),
+                        // Recovery assumes a repeat login on this device. A Maps sign-in on the same
+                        // browser is a different product, so it must not end a Food Delivery session
+                        // unasked: the person picks one from the session-limit response instead.
+                        mapsTokens == null);
+        var roles = mapsTokens == null ? entitlements.rolesFor(user.getId()) : List.<RoleName>of();
+        if (mapsTokens != null) {
+            // The Maps relay is absolute-lifetime bounded. An unclaimed/lost login must not
+            // occupy the shared person's session allowance for the ordinary 30-day lifetime.
+            var created = candidate.get(candidate.size() - 1);
+            var limit = clock.instant().plus(Duration.ofMinutes(15));
+            if (limit.isBefore(created.getAbsoluteExpiresAt())) created.setAbsoluteExpiresAt(limit);
+        }
         consumeOtp(phone, request.otp(), OtpPurpose.LOGIN);
         sessions.commitNew(user.getId(), candidate);
         cache.delete("RATELIMIT:VERIFY:" + phone);
         return new SessionResponse(
-                token(user, roles, candidate.get(candidate.size() - 1)), provisioned.created());
+                mapsTokens == null ? token(user, roles, candidate.get(candidate.size() - 1))
+                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1)), provisioned.created());
+    }
+
+    @Transactional
+    public SessionResponse refreshMaps(String credential) {
+        var tokens = requireMapsTokens();
+        var verified = tokens.verify(credential, false);
+        var user = provisioner.lockActive(verified.subject());
+        var session = sessions.require(user.getId(), verified.sessionId());
+        if (user.getEntitlementsVersion() != verified.version() || session.getPurpose() != OtpPurpose.LOGIN
+                || verified.expiresAt().isAfter(session.getAbsoluteExpiresAt())
+                || verified.issuedAt().isBefore(session.getCreatedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)))
+            throw new com.fooddelivery.identity.exception.MapsIdentityException(
+                    com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE);
+        limit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
+        String credentialResult = tokens.issue(user, session);
+        sessions.touch(user.getId(), session.getSessionId());
+        return new SessionResponse(credentialResult, false);
+    }
+
+    @Transactional
+    public void logoutMaps(String credential) {
+        var verified = requireMapsTokens().verify(credential, true);
+        // Same DB row lock as all person-session refresh/revoke transitions. Do not require an
+        // active account/version before revoking: disabled/expired sessions must still sign out.
+        users.lockById(verified.subject());
+        sessions.remove(verified.subject(), verified.sessionId(), false);
+    }
+
+    private MapsSessionTokens requireMapsTokens() {
+        var tokens = mapsSessionTokens == null ? null : mapsSessionTokens.getIfAvailable();
+        if (tokens == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Authentication is temporarily unavailable");
+        return tokens;
     }
 
     @Transactional
@@ -164,7 +239,8 @@ public class AuthService {
                             source.getDeviceInfo(),
                             source.getOs(),
                             source.getBrowser(),
-                            request.replaceSessionId());
+                            request.replaceSessionId(),
+                            true);
             audit.record(
                     clock.instant(),
                     userId,
@@ -255,6 +331,10 @@ public class AuthService {
     private void sendOtp(String phone, OtpPurpose purpose) {
         var limits = limits(phone, purpose);
         limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        deliverOtp(phone, purpose);
+    }
+
+    private void deliverOtp(String phone, OtpPurpose purpose) {
         String otp = String.format(Locale.ROOT, "%06d", random.nextInt(1_000_000));
         cache.put(otpKey(phone, purpose), otp, 5);
         events.publishNotificationEvent(phone, "SMS", otp);
