@@ -145,6 +145,59 @@ class MapsIdentityTransportTest {
     HttpResponse<String> send(HttpClient client, String path, String body) throws Exception {
         return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
+    @Test void authorisedPeerCorrelationReachesTheResponseAndSafeLog() throws Exception {
+        String correlation = "a".repeat(32);
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MapsIdentityFilter.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", correlation)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, result.statusCode());
+            assertEquals(correlation, result.headers().firstValue("X-Request-ID").orElseThrow());
+            assertTrue(logs.list.stream().anyMatch(e -> e.getFormattedMessage().contains("operation=validate")
+                    && e.getFormattedMessage().contains("correlation=" + correlation)));
+            assertTrue(logs.list.stream().noneMatch(e -> e.getFormattedMessage().contains(credential)));
+            var denied = unrelated.send(request("/internal/maps/v1/validate").header("X-Request-ID", correlation)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(403, denied.statusCode());
+            assertNotEquals(correlation, denied.headers().firstValue("X-Request-ID").orElseThrow());
+        } finally { logger.detachAppender(logs); logs.stop(); }
+    }
+    @Test void peerCorrelationRefusesMalformedAndDuplicateIds() throws Exception {
+        for (String id : List.of("do-not-log-this-private-canary", "a".repeat(33), "A".repeat(32))) {
+            var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", id)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(400, result.statusCode());
+            assertNotEquals(id, result.headers().firstValue("X-Request-ID").orElseThrow());
+        }
+        var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", "a".repeat(32)).header("X-Request-ID", "b".repeat(32))
+                .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, result.statusCode());
+    }
+    @Test void staleReplacementIsNotAnAuthorityOutage() throws Exception {
+        server.stop(); filter.close();
+        var auth = mock(AuthService.class);
+        when(auth.createMapsSession(any())).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
+        startServer(null, auth);
+        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43),
+                "phone_number", "9000000042", "otp", "123456", "replace_session_id", UUID.randomUUID().toString()));
+        var result = send(peer, "/internal/maps/v1/session", input);
+        assertEquals(404, result.statusCode());
+        assertEquals("NOT_FOUND", json.readTree(result.body()).path("code").asText());
+    }
+    @Test void otpRefusalRetainsItsBoundedRetryWindow() throws Exception {
+        server.stop(); filter.close();
+        var auth = mock(AuthService.class);
+        var refusal = new com.fooddelivery.identity.exception.MapsOtpRateLimitException(600);
+        doThrow(refusal).when(auth).initiateMapsLogin(anyString());
+        startServer(null, auth);
+        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "phone_number", "9000000042"));
+        var result = send(peer, "/internal/maps/v1/otp", input);
+        assertEquals(429, result.statusCode());
+        assertEquals("600", result.headers().firstValue("Retry-After").orElseThrow());
+        assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+    }
     @Test void actualTlsPeerValidatesTheHumanAndRechecksRevocationAndDisable() throws Exception {
         var result = send(peer, "/internal/maps/v1/validate", body()); assertEquals(200, result.statusCode());
         var value = json.readTree(result.body()); assertEquals(user.getId().toString(), value.path("subject").asText());
