@@ -187,6 +187,25 @@ class AuthServiceTest {
         verify(cache,never()).put(anyString(),anyString(),anyLong());
         verify(cache,never()).putVersions(anyMap(),any());
     }
+    @Test void mapsSignInAtTheLimitAsksInsteadOfEndingASameDeviceSession() throws Exception {
+        var temp=java.nio.file.Files.createTempDirectory("maps-auth-fixture-");
+        try {
+            var tokens=new MapsSessionTokens(MapsSessionTokensTest.configured(temp,KeyPairGenerator.getInstance("RSA").generateKeyPair()),clock,new org.springframework.core.io.DefaultResourceLoader());
+            var provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+            when(provider.getIfAvailable()).thenReturn(tokens);ReflectionTestUtils.setField(auth,"mapsSessionTokens",provider);
+            var same=session(OtpPurpose.LOGIN,"macOS","Chromium",now.plus(Duration.ofDays(20)));
+            var kept=session(OtpPurpose.LOGIN,"iOS","Safari",now.plus(Duration.ofDays(20)));
+            save(List.of(same,kept,session(OtpPurpose.LOGIN,"Android","Chrome",now.plus(Duration.ofDays(20)))));
+            var failure=assertThrows(MaxSessionsReachedException.class,()->auth.createMapsSession(request("macOS","Chromium",null)));
+            assertEquals(3,failure.getActiveSessions().size());assertNull(stored.get("BLACKLIST:SESSION:"+same.getSessionId()));
+            assertEquals(code,stored.get("OTP:"+phone+":LOGIN"));assertEquals(3,registry.list(user.getId()).size());
+            auth.createMapsSession(request("macOS","Chromium",same.getSessionId()));
+            assertEquals("true",stored.get("BLACKLIST:SESSION:"+same.getSessionId()));assertNull(stored.get("BLACKLIST:SESSION:"+kept.getSessionId()));
+            assertEquals(3,registry.list(user.getId()).size());
+        } finally {
+            try(var paths=java.nio.file.Files.walk(temp)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}
+        }
+    }
     @Test void mapsLoginAndRefreshUseScopedCredentialsAndKeepTheSamePersonSession() throws Exception {
         var temp=java.nio.file.Files.createTempDirectory("maps-auth-fixture-");
         try {
@@ -217,5 +236,16 @@ class AuthServiceTest {
         refuses(429,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
         when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(null);
         refuses(503,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
+    }
+    @Test void mapsRequestsRefusedForOnePhoneDoNotSpendTheSharedNotificationBudget() {
+        var counts=new HashMap<String,Long>();
+        when(cache.increment(anyString(),anyLong())).thenAnswer(i->counts.merge(i.getArgument(0),1L,Long::sum));
+        ReflectionTestUtils.setField(auth,"mapsOtpMaxPerDay",12);
+        for(int i=0;i<10;i++)auth.initiateMapsLogin(phone);
+        for(int i=0;i<100;i++)refuses(429,()->auth.initiateMapsLogin(phone));
+        assertEquals(10L,counts.get("RATELIMIT:MAPS:OTP:GLOBAL"),"only delivered notifications spend the shared budget");
+        verify(events,times(10)).publishNotificationEvent(eq(phone),eq("SMS"),anyString());
+        auth.initiateMapsLogin("8999000000");
+        verify(events).publishNotificationEvent(eq("8999000000"),eq("SMS"),anyString());
     }
 }

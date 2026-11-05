@@ -116,13 +116,14 @@ public class SessionRegistry {
             String device,
             String os,
             String browser,
-            String replacement) {
+            String replacement,
+            boolean sameDeviceRecovery) {
         var rows = list(userId);
         if (replacement != null && !replacement.isBlank()) {
             if (!rows.removeIf(s -> replacement.equals(s.getSessionId())))
                 throw new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Choose one of your active sessions to replace");
-        } else if (rows.size() >= maxSessions && os != null && browser != null) {
+        } else if (sameDeviceRecovery && rows.size() >= maxSessions && os != null && browser != null) {
             // Same-device recovery replaces only a session with the same authentication purpose.
             rows.stream()
                     .filter(

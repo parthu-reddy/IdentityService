@@ -104,9 +104,13 @@ public class AuthService {
         if (mapsOtpMaxPerDay < 1 || mapsOtpMaxPerDay > 10000)
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
         // Shared atomic Redis admission bounds notification spending across peers,
-        // replicas and phone rotations, in addition to the existing per-phone limit.
+        // replicas and phone rotations. It is charged only for a notification the
+        // per-phone limit admits: a refused request sends nothing, so repeating one
+        // phone must not exhaust the budget for every other Maps sign-in.
+        var limits = limits(phone, OtpPurpose.LOGIN);
+        limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
         limit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
-        initiateLogin(phone);
+        deliverOtp(phone, OtpPurpose.LOGIN);
     }
 
     @Transactional
@@ -132,7 +136,11 @@ public class AuthService {
                         request.deviceInfo(),
                         request.os(),
                         request.browser(),
-                        request.replaceSessionId());
+                        request.replaceSessionId(),
+                        // Recovery assumes a repeat login on this device. A Maps sign-in on the same
+                        // browser is a different product, so it must not end a Food Delivery session
+                        // unasked: the person picks one from the session-limit response instead.
+                        mapsTokens == null);
         var roles = mapsTokens == null ? entitlements.rolesFor(user.getId()) : List.<RoleName>of();
         if (mapsTokens != null) {
             // The Maps relay is absolute-lifetime bounded. An unclaimed/lost login must not
@@ -231,7 +239,8 @@ public class AuthService {
                             source.getDeviceInfo(),
                             source.getOs(),
                             source.getBrowser(),
-                            request.replaceSessionId());
+                            request.replaceSessionId(),
+                            true);
             audit.record(
                     clock.instant(),
                     userId,
@@ -322,6 +331,10 @@ public class AuthService {
     private void sendOtp(String phone, OtpPurpose purpose) {
         var limits = limits(phone, purpose);
         limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        deliverOtp(phone, purpose);
+    }
+
+    private void deliverOtp(String phone, OtpPurpose purpose) {
         String otp = String.format(Locale.ROOT, "%06d", random.nextInt(1_000_000));
         cache.put(otpKey(phone, purpose), otp, 5);
         events.publishNotificationEvent(phone, "SMS", otp);
