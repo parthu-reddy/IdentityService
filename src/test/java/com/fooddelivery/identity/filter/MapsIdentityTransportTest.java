@@ -145,6 +145,29 @@ class MapsIdentityTransportTest {
     HttpResponse<String> send(HttpClient client, String path, String body) throws Exception {
         return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
+    @Test void staleReplacementIsNotAnAuthorityOutage() throws Exception {
+        server.stop(); filter.close();
+        var auth = mock(AuthService.class);
+        when(auth.createMapsSession(any())).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
+        startServer(null, auth);
+        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43),
+                "phone_number", "9000000042", "otp", "123456", "replace_session_id", UUID.randomUUID().toString()));
+        var result = send(peer, "/internal/maps/v1/session", input);
+        assertEquals(404, result.statusCode());
+        assertEquals("NOT_FOUND", json.readTree(result.body()).path("code").asText());
+    }
+    @Test void otpRefusalRetainsItsBoundedRetryWindow() throws Exception {
+        server.stop(); filter.close();
+        var auth = mock(AuthService.class);
+        var refusal = new com.fooddelivery.identity.exception.MapsOtpRateLimitException(600);
+        doThrow(refusal).when(auth).initiateMapsLogin(anyString());
+        startServer(null, auth);
+        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "phone_number", "9000000042"));
+        var result = send(peer, "/internal/maps/v1/otp", input);
+        assertEquals(429, result.statusCode());
+        assertEquals("600", result.headers().firstValue("Retry-After").orElseThrow());
+        assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+    }
     @Test void actualTlsPeerValidatesTheHumanAndRechecksRevocationAndDisable() throws Exception {
         var result = send(peer, "/internal/maps/v1/validate", body()); assertEquals(200, result.statusCode());
         var value = json.readTree(result.body()); assertEquals(user.getId().toString(), value.path("subject").asText());

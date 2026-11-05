@@ -108,8 +108,8 @@ public class AuthService {
         // per-phone limit admits: a refused request sends nothing, so repeating one
         // phone must not exhaust the budget for every other Maps sign-in.
         var limits = limits(phone, OtpPurpose.LOGIN);
-        limit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
-        limit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
+        mapsOtpLimit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        mapsOtpLimit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
         deliverOtp(phone, OtpPurpose.LOGIN);
     }
 
@@ -361,6 +361,18 @@ public class AuthService {
     private void consumeOtp(String phone, String otp, OtpPurpose purpose) {
         if (!cache.consumeOtp(otpKey(phone, purpose), otp))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired code");
+    }
+
+    private void mapsOtpLimit(String key, long minutes, int maximum) {
+        try {
+            limit(key, minutes, maximum);
+        } catch (ResponseStatusException refused) {
+            if (refused.getStatusCode().value() != 429) throw refused;
+            // CachePort has no TTL-read operation. Advertise the full configured
+            // window conservatively; do not pretend this is its remaining TTL.
+            throw new com.fooddelivery.identity.exception.MapsOtpRateLimitException(
+                    Math.max(1, Math.min(86400, minutes * 60)));
+        }
     }
 
     private void limit(String key, long minutes, int maximum) {

@@ -114,11 +114,12 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
         long deadline = started + properties.getRequestTimeout().toNanos();
         class Completion {
             void cancel() { Future<?> task = future.get(); if (task != null) task.cancel(true); }
-            synchronized void finish(MapsIdentityException.Code code, Map<String, Object> value) {
+            void finish(MapsIdentityException.Code code, Map<String, Object> value) { finish(code, value, 1); }
+            synchronized void finish(MapsIdentityException.Code code, Map<String, Object> value, int retryAfterSeconds) {
                 if (!done.compareAndSet(false, true)) return;
                 if (code == null && System.nanoTime() >= deadline) { code = UNAVAILABLE; value = null; }
                 Future<?> expiry = timer.get(); if (expiry != null) expiry.cancel(false);
-                try { write(response, code, value, operation, started, correlation); }
+                try { write(response, code, value, operation, started, correlation, retryAfterSeconds); }
                 catch (IOException ignored) { /* Lost response is not proof a mutation did not commit. */ }
                 finally { admitted.release(); async.complete(); }
             }
@@ -167,7 +168,9 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                         }
                         catch (ResponseStatusException ex) {
                             int status = ex.getStatusCode().value();
-                            completion.finish(status == 401 ? INACTIVE : status == 429 ? OVERLOADED : UNAVAILABLE, null);
+                            int retry = ex instanceof com.fooddelivery.identity.exception.MapsOtpRateLimitException limited
+                                    ? limited.retryAfterSeconds() : 1;
+                            completion.finish(status == 401 ? INACTIVE : status == 404 ? NOT_FOUND : status == 429 ? OVERLOADED : UNAVAILABLE, null, retry);
                         } catch (Exception ex) { completion.finish(UNAVAILABLE, null); }
                     });
                     future.set(submitted);
@@ -180,13 +183,18 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
 
     private void write(HttpServletResponse response, MapsIdentityException.Code code, Map<String, Object> value,
                        String operation, long started, String correlation) throws IOException {
+        write(response, code, value, operation, started, correlation, 1);
+    }
+
+    private void write(HttpServletResponse response, MapsIdentityException.Code code, Map<String, Object> value,
+                       String operation, long started, String correlation, int retryAfterSeconds) throws IOException {
         response.setStatus(code == null ? 200 : code.status());
         response.setContentType("application/json");
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Request-ID", correlation);
-        if (code == OVERLOADED || code == UNAVAILABLE) response.setHeader("Retry-After", "1");
+        if (code == OVERLOADED || code == UNAVAILABLE) response.setHeader("Retry-After", Integer.toString(retryAfterSeconds));
         String outcome = code == null ? "completed" : code.name().toLowerCase(java.util.Locale.ROOT);
         String metricOperation = MapsIdentityOperations.OPERATIONS.contains(operation) ? operation : "unknown";
         long elapsed = System.nanoTime() - started;

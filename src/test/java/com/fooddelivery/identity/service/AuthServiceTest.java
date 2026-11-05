@@ -233,7 +233,7 @@ class AuthServiceTest {
     }
     @Test void mapsNotificationBudgetIsSharedAndFailsBeforeAnyNotification() {
         when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(1001L);
-        refuses(429,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
+        assertEquals("86400", refuses(429,()->auth.initiateMapsLogin(phone)).getHeaders().getFirst("Retry-After"));verifyNoInteractions(events);
         when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(null);
         refuses(503,()->auth.initiateMapsLogin(phone));verifyNoInteractions(events);
     }
@@ -242,7 +242,7 @@ class AuthServiceTest {
         when(cache.increment(anyString(),anyLong())).thenAnswer(i->counts.merge(i.getArgument(0),1L,Long::sum));
         ReflectionTestUtils.setField(auth,"mapsOtpMaxPerDay",12);
         for(int i=0;i<10;i++)auth.initiateMapsLogin(phone);
-        for(int i=0;i<100;i++)refuses(429,()->auth.initiateMapsLogin(phone));
+        for(int i=0;i<100;i++)assertEquals("600", refuses(429,()->auth.initiateMapsLogin(phone)).getHeaders().getFirst("Retry-After"));
         assertEquals(10L,counts.get("RATELIMIT:MAPS:OTP:GLOBAL"),"only delivered notifications spend the shared budget");
         verify(events,times(10)).publishNotificationEvent(eq(phone),eq("SMS"),anyString());
         auth.initiateMapsLogin("8999000000");
