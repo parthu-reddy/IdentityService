@@ -2033,28 +2033,38 @@
             "type" : "integer",
             "format" : "int64"
           },
-          "pageSize" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "paged" : {
-            "type" : "boolean"
-          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "unpaged" : {
+          "paged" : {
             "type" : "boolean"
           },
           "pageNumber" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unpaged" : {
+            "type" : "boolean"
           }
         }
       },
       "SliceOrganisationView" : {
         "type" : "object",
         "properties" : {
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "size" : {
             "type" : "integer",
             "format" : "int32"
@@ -2065,25 +2075,15 @@
               "$ref" : "#/components/schemas/OrganisationView"
             }
           },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -2130,6 +2130,16 @@
       "SliceMemberView" : {
         "type" : "object",
         "properties" : {
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "size" : {
             "type" : "integer",
             "format" : "int32"
@@ -2140,25 +2150,15 @@
               "$ref" : "#/components/schemas/MemberView"
             }
           },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -2190,6 +2190,16 @@
       "SliceInvitationView" : {
         "type" : "object",
         "properties" : {
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "size" : {
             "type" : "integer",
             "format" : "int32"
@@ -2200,25 +2210,15 @@
               "$ref" : "#/components/schemas/InvitationView"
             }
           },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
@@ -2408,7 +2408,7 @@
           },
           "action" : {
             "type" : "string",
-            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED", "DINING_TABLE_CREATED", "DINING_TABLE_UPDATED", "DINING_TABLE_DEACTIVATED", "DINING_TABLE_REACTIVATED", "DINING_SESSION_OPENED", "DINING_SESSION_HANDED_OFF", "DINING_SESSION_CLOSED", "DINING_GUEST_LINKED", "DINING_GUEST_REFUSED", "DINING_ORDER_PLACED", "DINING_ORDER_COLLECTED", "DINING_ORDER_SETTLE_AT_RESTAURANT", "DINING_LINE_SERVED", "DINING_LINE_UNSERVED", "DINING_LINE_VOID_REQUESTED", "DINING_LINE_VOID_APPROVED", "PICKUP_HANDED_OVER", "PICKUP_HANDED_OVER_WITHOUT_CODE", "PICKUP_CODE_REFUSED", "DINING_GUEST_SELF_SEATED", "DINING_SELF_SEAT_REFUSED", "DINING_TABLE_QR_REPRINTED", "DINING_ASSISTANCE_ACKED", "DINING_GUEST_LEFT", "DINING_ASSISTANCE_REQUESTED", "OUTLET_SERVICE_MODES_CHANGED", "RESERVATION_HELD", "RESERVATION_CONFIRMED", "RESERVATION_MODIFIED", "RESERVATION_CANCELLED", "RESERVATION_SEATED", "RESERVATION_NO_SHOW", "RESERVATION_COMPLETED", "RESERVATION_POLICY_CHANGED" ]
+            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED", "DINING_TABLE_CREATED", "DINING_TABLE_UPDATED", "DINING_TABLE_DEACTIVATED", "DINING_TABLE_REACTIVATED", "DINING_SESSION_OPENED", "DINING_SESSION_HANDED_OFF", "DINING_SESSION_CLOSED", "DINING_GUEST_LINKED", "DINING_GUEST_REFUSED", "DINING_ORDER_PLACED", "DINING_ORDER_COLLECTED", "DINING_ORDER_SETTLE_AT_RESTAURANT", "DINING_LINE_SERVED", "DINING_LINE_UNSERVED", "DINING_LINE_VOID_REQUESTED", "DINING_LINE_VOID_APPROVED", "PICKUP_HANDED_OVER", "PICKUP_HANDED_OVER_WITHOUT_CODE", "PICKUP_CODE_REFUSED", "DINING_GUEST_SELF_SEATED", "DINING_SELF_SEAT_REFUSED", "DINING_TABLE_QR_REPRINTED", "DINING_ASSISTANCE_ACKED", "DINING_GUEST_LEFT", "DINING_ASSISTANCE_REQUESTED", "OUTLET_SERVICE_MODES_CHANGED", "RESERVATION_HELD", "RESERVATION_CONFIRMED", "RESERVATION_MODIFIED", "RESERVATION_CANCELLED", "RESERVATION_SEATED", "RESERVATION_NO_SHOW", "RESERVATION_COMPLETED", "RESERVATION_POLICY_CHANGED", "BOOKING_CREDIT_SKIPPED" ]
           },
           "subjectType" : {
             "type" : "string"
@@ -2438,6 +2438,16 @@
       "SliceAuditEvent" : {
         "type" : "object",
         "properties" : {
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
           "size" : {
             "type" : "integer",
             "format" : "int32"
@@ -2448,25 +2458,15 @@
               "$ref" : "#/components/schemas/AuditEvent"
             }
           },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
           },
           "empty" : {
             "type" : "boolean"
