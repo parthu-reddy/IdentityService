@@ -40,6 +40,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Actual HTTPS/mTLS, servlet async upload/deadline and current authority; isolated DB/cache ports. */
 class MapsIdentityTransportTest {
     private static final char[] PASSWORD = "isolated-test-store".toCharArray();
+    /** Tests about the server's deadline run with production's 2 s; the rest get UNHURRIED_DEADLINE (see start()). */
+    static final String PRODUCTION_DEADLINE = "production-deadline";
+    static final Duration UNHURRIED_DEADLINE = Duration.ofSeconds(15);
     @TempDir static Path temp;
     static HttpClient peer, unrelated, anonymous;
     final Clock clock = Clock.systemUTC();
@@ -91,7 +94,7 @@ class MapsIdentityTransportTest {
         var ssl = SSLContext.getInstance("TLS"); ssl.init(managers, factory.getTrustManagers(), null);
         return HttpClient.newBuilder().sslContext(ssl).version(HttpClient.Version.HTTP_1_1).build();
     }
-    @BeforeEach void start() throws Exception {
+    @BeforeEach void start(TestInfo test) throws Exception {
         properties = new MapsIdentityProperties(); properties.setEnabled(true);
         properties.setAuthority("https://identity.test"); properties.setAudience("maps-editor"); properties.setSigningKeyId("current");
         properties.setAllowedPeers(List.of("spiffe://maps/adapter")); properties.setConcurrency(1);
@@ -102,6 +105,10 @@ class MapsIdentityTransportTest {
         Files.writeString(publicKey, pem(pair.getPublic().getEncoded(), "PUBLIC KEY"));
         properties.setPrivateKey(privateKey.toUri().toString()); properties.setVerificationKeys(Map.of("current", publicKey.toUri().toString()));
         tokens = new MapsSessionTokens(properties, clock, new DefaultResourceLoader());
+        // MapsSessionTokens has validated production's deadline (2 s, the cap). Under a parallel build the first full
+        // authority call in a fresh server took 2014 ms and answered 503 (Phase 7 build_verify, 2026-11-08), which says
+        // nothing about what the other tests check, so only the tests about the deadline keep it.
+        if (!test.getTags().contains(PRODUCTION_DEADLINE)) properties.setRequestTimeout(UNHURRIED_DEADLINE);
         Instant now = clock.instant();
         user = AppUser.builder().id(UUID.randomUUID()).isActive(true).entitlementsVersion(4).build();
         session = SessionInfo.builder().sessionId(UUID.randomUUID().toString()).purpose(OtpPurpose.LOGIN)
@@ -135,8 +142,8 @@ class MapsIdentityTransportTest {
     }
     @AfterEach void stop() { if (server != null) server.stop(); if (filter != null) filter.close(); }
     // One limit for the whole exchange: it only stops a hung call blocking the build forever. This client's first request
-    // runs a cold TLS handshake, which under a parallel build outlasted a 1 s connect limit. The server's own 2 s deadline
-    // is asserted by aSlowUploadUsesTheSameWholeRequestDeadline on its own socket, not by this value.
+    // runs a cold TLS handshake, which under a parallel build outlasted a 1 s connect limit. It sits above the server's own
+    // deadline (UNHURRIED_DEADLINE, or 2 s in the PRODUCTION_DEADLINE tests), so a stuck authority still answers 503 first.
     HttpRequest.Builder request(String path) {
         return HttpRequest.newBuilder(URI.create("https://localhost:" + server.getPort() + path)).timeout(Duration.ofSeconds(30))
                 .header("Content-Type", "application/json");
@@ -204,13 +211,13 @@ class MapsIdentityTransportTest {
         assertEquals(400,nonUtf8.statusCode());
         verifyNoInteractions(users, cache);
     }
-    @Test void unavailableCurrentAuthorityReturnsFinite503WithoutPrivateExceptionText() throws Exception {
+    @Tag(PRODUCTION_DEADLINE) @Test void unavailableCurrentAuthorityReturnsFinite503WithoutPrivateExceptionText() throws Exception {
         when(cache.get(anyString())).thenThrow(new IllegalStateException("DO_NOT_DISCLOSE private credential"));
         var result = send(peer, "/internal/maps/v1/validate", body());
         assertEquals(503, result.statusCode()); assertEquals("no-store", result.headers().firstValue("Cache-Control").orElseThrow());
         assertEquals("UNAVAILABLE", json.readTree(result.body()).path("code").asText()); assertFalse(result.body().contains("DO_NOT_DISCLOSE"));
     }
-    @Test void aSlowUploadUsesTheSameWholeRequestDeadline() throws Exception {
+    @Tag(PRODUCTION_DEADLINE) @Test void aSlowUploadUsesTheSameWholeRequestDeadline() throws Exception {
         for(int attempt=0;attempt<3;attempt++)
         try (var socket = (SSLSocket) peer.sslContext().getSocketFactory().createSocket("localhost", server.getPort())) {
             socket.setSoTimeout(3500); socket.startHandshake(); long started = System.nanoTime();
