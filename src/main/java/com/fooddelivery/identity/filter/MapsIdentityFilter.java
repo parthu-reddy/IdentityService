@@ -204,6 +204,7 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 metricOperation, outcome, correlation, TimeUnit.NANOSECONDS.toMillis(elapsed));
         mapper.writeValue(response.getOutputStream(), code == null || value != null ? value
                 : Map.of("version", 1, "active", false, "code", code.name()));
+        response.getOutputStream().flush();
     }
 
     private static String bounded(String value) { return value == null ? "" : value.substring(0,Math.min(value.length(),80)); }

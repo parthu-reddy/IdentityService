@@ -152,7 +152,16 @@ class MapsIdentityTransportTest {
         return json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "credential", credential));
     }
     HttpResponse<String> send(HttpClient client, String path, String body) throws Exception {
-        return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+        try {
+            return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+        } catch (java.io.IOException ex) {
+            // Under parallel CI load, HttpClient's pooled connection may be concurrently closed by Tomcat,
+            // producing "HTTP/1.1 header parser received no bytes". Evict the stale connection and retry once.
+            if (ex.getMessage() != null && ex.getMessage().contains("header parser received no bytes")) {
+                return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+            }
+            throw ex;
+        }
     }
     @Test void staleReplacementIsNotAnAuthorityOutage() throws Exception {
         server.stop(); filter.close();
