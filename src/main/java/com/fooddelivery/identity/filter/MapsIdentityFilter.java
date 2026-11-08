@@ -120,7 +120,12 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 if (code == null && System.nanoTime() >= deadline) { code = UNAVAILABLE; value = null; }
                 Future<?> expiry = timer.get(); if (expiry != null) expiry.cancel(false);
                 try { write(response, code, value, operation, started, correlation, retryAfterSeconds); }
-                catch (IOException ignored) { /* Lost response is not proof a mutation did not commit. */ }
+                catch (IOException lost) {
+                    // A lost response is not proof a mutation did not commit, so it is never retried here; it is counted
+                    // and logged with its correlation id, so the caller's failed exchange can be matched to this one.
+                    metrics.counter("maps.identity.responses.lost", "operation", operation).increment();
+                    log.warn("maps_identity operation={} stage=response_lost correlation={} error={}", operation, correlation, lost.toString());
+                }
                 finally { admitted.release(); async.complete(); }
             }
         }
@@ -204,7 +209,6 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 metricOperation, outcome, correlation, TimeUnit.NANOSECONDS.toMillis(elapsed));
         mapper.writeValue(response.getOutputStream(), code == null || value != null ? value
                 : Map.of("version", 1, "active", false, "code", code.name()));
-        response.getOutputStream().flush();
     }
 
     private static String bounded(String value) { return value == null ? "" : value.substring(0,Math.min(value.length(),80)); }

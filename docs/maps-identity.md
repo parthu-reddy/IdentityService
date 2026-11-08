@@ -31,6 +31,8 @@ Each whole request, including upload, has a two-second deadline. Bounded workers
 have no task queue; a timed-out operation retains its executing worker until it
 actually exits. Dependency failures use fixed finite responses and safe metadata.
 Writes may commit despite a lost response; no automatic mutation retry is added.
+A lost response is counted (`maps.identity.responses.lost`, by operation) and logged at WARN
+with its correlation id (`stage=response_lost`).
 The exact contract, limits, selected D01–D10 decisions and remaining gates are in
 [the integration handoff](https://github.com/parthu-reddy/RandomDocuments/pull/6).
 

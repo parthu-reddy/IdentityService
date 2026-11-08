@@ -97,7 +97,10 @@ class MapsIdentityTransportTest {
     @BeforeEach void start(TestInfo test) throws Exception {
         properties = new MapsIdentityProperties(); properties.setEnabled(true);
         properties.setAuthority("https://identity.test"); properties.setAudience("maps-editor"); properties.setSigningKeyId("current");
-        properties.setAllowedPeers(List.of("spiffe://maps/adapter")); properties.setConcurrency(1);
+        properties.setAllowedPeers(List.of("spiffe://maps/adapter"));
+        // Two workers: a worker that has answered is still unwinding when this one-at-a-time client sends its next request,
+        // and with one worker that request found none free and got 429 OVERLOADED (seen 1 in 300 back-to-back pairs).
+        properties.setConcurrency(2);
         var pair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         Path privateKey = Files.createTempFile(temp, "sign-", ".pem"), publicKey = Files.createTempFile(temp, "verify-", ".pem");
         Files.writeString(privateKey, pem(pair.getPrivate().getEncoded(), "PRIVATE KEY"));
@@ -152,16 +155,7 @@ class MapsIdentityTransportTest {
         return json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "credential", credential));
     }
     HttpResponse<String> send(HttpClient client, String path, String body) throws Exception {
-        try {
-            return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
-        } catch (java.io.IOException ex) {
-            // Under parallel CI load, HttpClient's pooled connection may be concurrently closed by Tomcat,
-            // producing "HTTP/1.1 header parser received no bytes". Evict the stale connection and retry once.
-            if (ex.getMessage() != null && ex.getMessage().contains("header parser received no bytes")) {
-                return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
-            }
-            throw ex;
-        }
+        return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
     @Test void staleReplacementIsNotAnAuthorityOutage() throws Exception {
         server.stop(); filter.close();
@@ -185,6 +179,35 @@ class MapsIdentityTransportTest {
         assertEquals(429, result.statusCode());
         assertEquals("600", result.headers().firstValue("Retry-After").orElseThrow());
         assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+    }
+    @Test void aResponseTheConnectionLosesIsCountedAndTheExchangeStillCompletes() throws Exception {
+        var keys = KeyStore.getInstance("PKCS12");
+        try (var input = Files.newInputStream(temp.resolve("peer.p12"))) { keys.load(input, PASSWORD); }
+        var chain = new java.security.cert.X509Certificate[] { (java.security.cert.X509Certificate) keys.getCertificate("peer") };
+        byte[] payload = body().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var request = mock(HttpServletRequest.class); var response = mock(HttpServletResponse.class);
+        var async = mock(jakarta.servlet.AsyncContext.class);
+        when(request.getRequestURI()).thenReturn("/internal/maps/v1/validate"); when(request.getContextPath()).thenReturn("");
+        when(request.getServletPath()).thenReturn("/internal/maps/v1/validate"); when(request.isSecure()).thenReturn(true);
+        when(request.getAttribute("jakarta.servlet.request.X509Certificate")).thenReturn(chain);
+        when(request.getMethod()).thenReturn("POST"); when(request.getContentType()).thenReturn("application/json");
+        when(request.getContentLengthLong()).thenReturn((long) payload.length);
+        when(request.isAsyncSupported()).thenReturn(true); when(request.startAsync()).thenReturn(async);
+        when(request.getInputStream()).thenReturn(new jakarta.servlet.ServletInputStream() {
+            final java.io.ByteArrayInputStream in = new java.io.ByteArrayInputStream(payload);
+            @Override public boolean isFinished() { return in.available() == 0; }
+            @Override public boolean isReady() { return true; }
+            @Override public void setReadListener(jakarta.servlet.ReadListener listener) {
+                try { listener.onDataAvailable(); listener.onAllDataRead(); } catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
+            }
+            @Override public int read() { return in.read(); }
+        });
+        // The caller has gone: the answer cannot be written.
+        when(response.getOutputStream()).thenThrow(new java.io.IOException("Connection reset by peer"));
+        filter.doFilter(request, response, mock(jakarta.servlet.FilterChain.class));
+        verify(async, timeout(5000)).complete();
+        assertEquals(1.0, metrics.counter("maps.identity.responses.lost", "operation", "validate").count());
+        verify(users).findById(user.getId()); // the authority ran: the lost answer was a real one
     }
     @Test void actualTlsPeerValidatesTheHumanAndRechecksRevocationAndDisable() throws Exception {
         var result = send(peer, "/internal/maps/v1/validate", body()); assertEquals(200, result.statusCode());
