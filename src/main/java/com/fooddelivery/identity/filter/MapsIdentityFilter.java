@@ -175,7 +175,7 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                         }
                         catch (ResponseStatusException ex) {
                             int status = ex.getStatusCode().value();
-                            int retry = ex instanceof com.fooddelivery.identity.exception.MapsOtpRateLimitException limited
+                            int retry = ex instanceof com.fooddelivery.identity.exception.MapsRateLimitException limited
                                     ? limited.retryAfterSeconds() : 1;
                             completion.finish(status == 401 ? INACTIVE : status == 404 ? NOT_FOUND : status == 429 ? OVERLOADED : UNAVAILABLE, null, retry);
                         } catch (Exception ex) { completion.finish(UNAVAILABLE, null); }

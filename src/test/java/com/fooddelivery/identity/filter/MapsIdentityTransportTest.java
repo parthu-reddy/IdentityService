@@ -186,17 +186,22 @@ class MapsIdentityTransportTest {
         assertEquals(404, result.statusCode());
         assertEquals("NOT_FOUND", json.readTree(result.body()).path("code").asText());
     }
-    @Test void otpRefusalRetainsItsBoundedRetryWindow() throws Exception {
+    @Test void mapsRefusalsRetainTheirBoundedRetryWindows() throws Exception {
         server.stop(); filter.close();
         var auth = mock(AuthService.class);
-        var refusal = new com.fooddelivery.identity.exception.MapsOtpRateLimitException(600);
-        doThrow(refusal).when(auth).initiateMapsLogin(anyString());
+        doThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(600)).when(auth).initiateMapsLogin(anyString());
+        when(auth.createMapsSession(any())).thenThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(300));
+        when(auth.refreshMaps(anyString())).thenThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(3600));
         startServer(null, auth);
-        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "phone_number", "9000000042"));
-        var result = send(peer, "/internal/maps/v1/otp", input);
-        assertEquals(429, result.statusCode());
-        assertEquals("600", result.headers().firstValue("Retry-After").orElseThrow());
-        assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+        for (var entry : Map.of("otp", "600", "session", "300", "refresh", "3600").entrySet()) {
+            var input = new HashMap<String,Object>(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43)));
+            if (entry.getKey().equals("refresh")) input.put("credential", credential);
+            else { input.put("phone_number", "9000000042");if (entry.getKey().equals("session")) input.put("otp", "123456"); }
+            var result = send(peer, "/internal/maps/v1/"+entry.getKey(), json.writeValueAsString(input));
+            assertEquals(429, result.statusCode(), entry.getKey());
+            assertEquals(entry.getValue(), result.headers().firstValue("Retry-After").orElseThrow(), entry.getKey());
+            assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+        }
     }
     @Test void actualTlsPeerValidatesTheHumanAndRechecksRevocationAndDisable() throws Exception {
         var result = send(peer, "/internal/maps/v1/validate", body()); assertEquals(200, result.statusCode());

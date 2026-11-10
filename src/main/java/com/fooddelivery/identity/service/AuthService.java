@@ -108,8 +108,8 @@ public class AuthService {
         // per-phone limit admits: a refused request sends nothing, so repeating one
         // phone must not exhaust the budget for every other Maps sign-in.
         var limits = limits(phone, OtpPurpose.LOGIN);
-        mapsOtpLimit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
-        mapsOtpLimit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
+        mapsLimit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        mapsLimit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
         deliverOtp(phone, OtpPurpose.LOGIN);
     }
 
@@ -126,7 +126,7 @@ public class AuthService {
 
     private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens) {
         String phone = validPhone(request.phoneNumber());
-        verifyOtp(phone, request.otp(), OtpPurpose.LOGIN);
+        verifyOtp(phone, request.otp(), OtpPurpose.LOGIN, mapsTokens != null);
         var provisioned = provisioner.findOrCreate(phone);
         var user = provisioned.user();
         var candidate =
@@ -168,7 +168,7 @@ public class AuthService {
                 || verified.issuedAt().isBefore(session.getCreatedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)))
             throw new com.fooddelivery.identity.exception.MapsIdentityException(
                     com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE);
-        limit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
+        mapsLimit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
         String credentialResult = tokens.issue(user, session);
         sessions.touch(user.getId(), session.getSessionId());
         return new SessionResponse(credentialResult, false);
@@ -341,9 +341,14 @@ public class AuthService {
     }
 
     private void verifyOtp(String phone, String otp, OtpPurpose purpose) {
+        verifyOtp(phone, otp, purpose, false);
+    }
+
+    private void verifyOtp(String phone, String otp, OtpPurpose purpose, boolean maps) {
         var limits = limits(phone, purpose);
         try {
-            limit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
+            if (maps) mapsLimit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
+            else limit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
         } catch (ResponseStatusException ex) {
             cache.delete(otpKey(phone, purpose));
             throw ex;
@@ -363,14 +368,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired code");
     }
 
-    private void mapsOtpLimit(String key, long minutes, int maximum) {
+    private void mapsLimit(String key, long minutes, int maximum) {
         try {
             limit(key, minutes, maximum);
         } catch (ResponseStatusException refused) {
             if (refused.getStatusCode().value() != 429) throw refused;
             // CachePort has no TTL-read operation. Advertise the full configured
             // window conservatively; do not pretend this is its remaining TTL.
-            throw new com.fooddelivery.identity.exception.MapsOtpRateLimitException(
+            throw new com.fooddelivery.identity.exception.MapsRateLimitException(
                     Math.max(1, Math.min(86400, minutes * 60)));
         }
     }
