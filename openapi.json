@@ -2032,9 +2032,9 @@
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
           },
-          "offset" : {
+          "pageSize" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int32"
           },
           "paged" : {
             "type" : "boolean"
@@ -2046,25 +2046,23 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "pageSize" : {
+          "offset" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int64"
           }
         }
       },
       "SliceOrganisationView" : {
         "type" : "object",
         "properties" : {
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
           },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "content" : {
             "type" : "array",
@@ -2072,18 +2070,20 @@
               "$ref" : "#/components/schemas/OrganisationView"
             }
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "empty" : {
             "type" : "boolean"
@@ -2130,16 +2130,14 @@
       "SliceMemberView" : {
         "type" : "object",
         "properties" : {
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
           },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "content" : {
             "type" : "array",
@@ -2147,18 +2145,20 @@
               "$ref" : "#/components/schemas/MemberView"
             }
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "empty" : {
             "type" : "boolean"
@@ -2190,16 +2190,14 @@
       "SliceInvitationView" : {
         "type" : "object",
         "properties" : {
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
           },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "content" : {
             "type" : "array",
@@ -2207,18 +2205,20 @@
               "$ref" : "#/components/schemas/InvitationView"
             }
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "empty" : {
             "type" : "boolean"
@@ -2438,16 +2438,14 @@
       "SliceAuditEvent" : {
         "type" : "object",
         "properties" : {
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
           },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "content" : {
             "type" : "array",
@@ -2455,18 +2453,20 @@
               "$ref" : "#/components/schemas/AuditEvent"
             }
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "number" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
+          "numberOfElements" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "empty" : {
             "type" : "boolean"
