@@ -2029,13 +2029,6 @@
         "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
         "type" : "object",
         "properties" : {
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "pageSize" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "paged" : {
             "type" : "boolean"
           },
@@ -2045,6 +2038,13 @@
           "pageNumber" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
           },
           "offset" : {
             "type" : "integer",
@@ -2061,21 +2061,21 @@
           "last" : {
             "type" : "boolean"
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "content" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/OrganisationView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "number" : {
             "type" : "integer",
@@ -2136,21 +2136,21 @@
           "last" : {
             "type" : "boolean"
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "content" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/MemberView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "number" : {
             "type" : "integer",
@@ -2196,21 +2196,21 @@
           "last" : {
             "type" : "boolean"
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "content" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/InvitationView"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "number" : {
             "type" : "integer",
@@ -2444,21 +2444,21 @@
           "last" : {
             "type" : "boolean"
           },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
           "sort" : {
             "$ref" : "#/components/schemas/SortObject"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "content" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/AuditEvent"
             }
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "number" : {
             "type" : "integer",
