@@ -1,21 +1,1602 @@
 {
-  "openapi" : "3.0.1",
+  "components" : {
+    "schemas" : {
+      "AdminOrganisationView" : {
+        "properties" : {
+          "members" : {
+            "$ref" : "#/components/schemas/SliceMemberView"
+          },
+          "organisation" : {
+            "$ref" : "#/components/schemas/OrganisationView"
+          }
+        },
+        "type" : "object"
+      },
+      "AdminSessionRequest" : {
+        "properties" : {
+          "otp" : {
+            "pattern" : "[0-9]{6}",
+            "type" : "string"
+          },
+          "replaceSessionId" : {
+            "pattern" : "[0-9a-fA-F-]{36}",
+            "type" : "string"
+          }
+        },
+        "required" : [ "otp" ],
+        "type" : "object"
+      },
+      "ApiResponseInvitationView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/InvitationView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseListPortalView" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PortalView"
+            },
+            "type" : "array"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseListSessionInfo" : {
+        "properties" : {
+          "data" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SessionInfo"
+            },
+            "type" : "array"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseMemberView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/MemberView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseOrganisationView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/OrganisationView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponsePageResponseDtoUserDTO" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/PageResponseDtoUserDTO"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseProfileResponseDto" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/ProfileResponseDto"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseSessionResponse" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/SessionResponse"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseSliceInvitationView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/SliceInvitationView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseSliceMemberView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/SliceMemberView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseSliceOrganisationView" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/SliceOrganisationView"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseString" : {
+        "properties" : {
+          "data" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseUserDTO" : {
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/UserDTO"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "ApiResponseVoid" : {
+        "properties" : {
+          "data" : {
+            "type" : "object"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "success", "timestamp" ],
+        "type" : "object"
+      },
+      "AuditEvent" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED", "DINING_TABLE_CREATED", "DINING_TABLE_UPDATED", "DINING_TABLE_DEACTIVATED", "DINING_TABLE_REACTIVATED", "DINING_SESSION_OPENED", "DINING_SESSION_HANDED_OFF", "DINING_SESSION_CLOSED", "DINING_GUEST_LINKED", "DINING_GUEST_REFUSED", "DINING_ORDER_PLACED", "DINING_ORDER_COLLECTED", "DINING_ORDER_SETTLE_AT_RESTAURANT", "DINING_LINE_SERVED", "DINING_LINE_UNSERVED", "DINING_LINE_VOID_REQUESTED", "DINING_LINE_VOID_APPROVED", "PICKUP_HANDED_OVER", "PICKUP_HANDED_OVER_WITHOUT_CODE", "PICKUP_CODE_REFUSED", "DINING_GUEST_SELF_SEATED", "DINING_SELF_SEAT_REFUSED", "DINING_TABLE_QR_REPRINTED", "DINING_ASSISTANCE_ACKED", "DINING_GUEST_LEFT", "DINING_ASSISTANCE_REQUESTED", "OUTLET_SERVICE_MODES_CHANGED", "RESERVATION_HELD", "RESERVATION_CONFIRMED", "RESERVATION_MODIFIED", "RESERVATION_CANCELLED", "RESERVATION_SEATED", "RESERVATION_NO_SHOW", "RESERVATION_COMPLETED", "RESERVATION_POLICY_CHANGED", "BOOKING_CREDIT_SKIPPED", "RESERVATION_TABLE_MOVED", "DINING_SEATED_OVER_BOOKING" ],
+            "type" : "string"
+          },
+          "actorKind" : {
+            "type" : "string"
+          },
+          "actorUserId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "details" : {
+            "additionalProperties" : {
+              "type" : "object"
+            },
+            "type" : "object"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "organisationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "subjectId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "subjectType" : {
+            "type" : "string"
+          },
+          "traceId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "BusinessView" : {
+        "properties" : {
+          "applicationStatus" : {
+            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ],
+            "type" : "string"
+          },
+          "businessId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "businessType" : {
+            "enum" : [ "RESTAURANT" ],
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ChangeRole" : {
+        "properties" : {
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "role" ],
+        "type" : "object"
+      },
+      "DineInGuestLinkRequest" : {
+        "properties" : {
+          "outletId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "phone" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          },
+          "requestedByUserId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "outletId", "phone", "requestedByUserId", "sessionId" ],
+        "type" : "object"
+      },
+      "DineInGuestLinked" : {
+        "properties" : {
+          "maskedPhone" : {
+            "type" : "string"
+          },
+          "newAccount" : {
+            "type" : "boolean"
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InvitationView" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organisationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organisationName" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "PENDING", "ACCEPTED", "DECLINED", "REVOKED", "EXPIRED" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Invite" : {
+        "properties" : {
+          "phoneNumber" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "phoneNumber", "role" ],
+        "type" : "object"
+      },
+      "MemberView" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "REMOVED" ],
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MembershipDto" : {
+        "properties" : {
+          "organisationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organisationStatus" : {
+            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ],
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "REMOVED" ],
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "organisationId", "organisationStatus", "role", "status", "userId" ],
+        "type" : "object"
+      },
+      "Name" : {
+        "properties" : {
+          "displayName" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "displayName" ],
+        "type" : "object"
+      },
+      "OrganisationBusinessDto" : {
+        "properties" : {
+          "applicationStatus" : {
+            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ],
+            "type" : "string"
+          },
+          "businessId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "businessType" : {
+            "enum" : [ "RESTAURANT" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "applicationStatus", "businessId", "businessType" ],
+        "type" : "object"
+      },
+      "OrganisationPortal" : {
+        "properties" : {
+          "businesses" : {
+            "items" : {
+              "$ref" : "#/components/schemas/BusinessView"
+            },
+            "type" : "array"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "organisationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "OrganisationView" : {
+        "properties" : {
+          "businesses" : {
+            "items" : {
+              "$ref" : "#/components/schemas/BusinessView"
+            },
+            "type" : "array"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "myRole" : {
+            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "OtpRequest" : {
+        "properties" : {
+          "phoneNumber" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          }
+        },
+        "required" : [ "phoneNumber" ],
+        "type" : "object"
+      },
+      "PageResponseDtoUserDTO" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/UserDTO"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "content", "empty", "first", "last", "number", "numberOfElements", "size", "totalElements", "totalPages" ],
+        "type" : "object"
+      },
+      "PageableObject" : {
+        "properties" : {
+          "offset" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pageNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "paged" : {
+            "type" : "boolean"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "unpaged" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
+        "type" : "object"
+      },
+      "PortalView" : {
+        "properties" : {
+          "organisations" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OrganisationPortal"
+            },
+            "type" : "array"
+          },
+          "portal" : {
+            "enum" : [ "CUSTOMER", "RESTAURANT", "DELIVERY", "ADS", "BUSINESS", "KITCHEN", "ADMIN" ],
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "state" : {
+            "enum" : [ "AVAILABLE", "PENDING_REVIEW", "ACTION_REQUIRED", "NOT_STARTED", "SUSPENDED", "STEP_UP_REQUIRED", "UNAVAILABLE" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ProfileResponseDto" : {
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Reason" : {
+        "properties" : {
+          "reason" : {
+            "maxLength" : 500,
+            "minLength" : 10,
+            "type" : "string"
+          }
+        },
+        "required" : [ "reason" ],
+        "type" : "object"
+      },
+      "RoleRequestDTO" : {
+        "properties" : {
+          "roleName" : {
+            "maxLength" : 50,
+            "minLength" : 0,
+            "pattern" : "ADMIN",
+            "type" : "string"
+          }
+        },
+        "required" : [ "roleName" ],
+        "type" : "object"
+      },
+      "SessionInfo" : {
+        "properties" : {
+          "absoluteExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "browser" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "deviceInfo" : {
+            "type" : "string"
+          },
+          "lastActive" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "os" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "enum" : [ "LOGIN", "ADMIN" ],
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "absoluteExpiresAt", "browser", "createdAt", "deviceInfo", "lastActive", "os", "purpose", "sessionId" ],
+        "type" : "object"
+      },
+      "SessionRequest" : {
+        "properties" : {
+          "browser" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "deviceInfo" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "os" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "otp" : {
+            "pattern" : "[0-9]{6}",
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "pattern" : "[0-9]{10}",
+            "type" : "string"
+          },
+          "replaceSessionId" : {
+            "pattern" : "[0-9a-fA-F-]{36}",
+            "type" : "string"
+          }
+        },
+        "required" : [ "otp", "phoneNumber" ],
+        "type" : "object"
+      },
+      "SessionResponse" : {
+        "properties" : {
+          "newUser" : {
+            "type" : "boolean"
+          },
+          "token" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SliceAuditEvent" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEvent"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          }
+        },
+        "type" : "object"
+      },
+      "SliceInvitationView" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InvitationView"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          }
+        },
+        "type" : "object"
+      },
+      "SliceMemberView" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MemberView"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          }
+        },
+        "type" : "object"
+      },
+      "SliceOrganisationView" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OrganisationView"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          }
+        },
+        "type" : "object"
+      },
+      "SortObject" : {
+        "properties" : {
+          "empty" : {
+            "type" : "boolean"
+          },
+          "sorted" : {
+            "type" : "boolean"
+          },
+          "unsorted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "empty", "sorted", "unsorted" ],
+        "type" : "object"
+      },
+      "StatusUpdateDTO" : {
+        "properties" : {
+          "isActive" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "isActive" ],
+        "type" : "object"
+      },
+      "Transfer" : {
+        "properties" : {
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "userId" ],
+        "type" : "object"
+      },
+      "UpdateProfileRequest" : {
+        "properties" : {
+          "email" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "phone" : {
+            "maxLength" : 20,
+            "minLength" : 0,
+            "pattern" : "^\\+?[1-9]\\d{1,14}$",
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "UserDTO" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "items" : {
+              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "id", "phoneNumber", "roles" ],
+        "type" : "object"
+      }
+    }
+  },
   "info" : {
     "title" : "OpenAPI definition",
     "version" : "v0"
   },
-  "servers" : [ {
-    "url" : "http://localhost",
-    "description" : "Generated server url"
-  } ],
+  "openapi" : "3.0.1",
   "paths" : {
-    "/api/v1/users/profile" : {
+    "/api/v1/auth/admin-session" : {
+      "post" : {
+        "operationId" : "createAdminSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminSessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/admin-session/otp" : {
+      "post" : {
+        "operationId" : "initiateAdminOtp",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "operationId" : "logout",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/otp" : {
+      "post" : {
+        "operationId" : "initiateLogin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/session" : {
+      "post" : {
+        "operationId" : "createSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/session/refresh" : {
+      "post" : {
+        "operationId" : "refresh",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/sessions" : {
+      "delete" : {
+        "operationId" : "removeAllSessions",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      },
       "get" : {
-        "tags" : [ "user-controller" ],
-        "operationId" : "getProfile",
+        "operationId" : "getActiveSessions",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListSessionInfo"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/sessions/{sessionId}" : {
+      "delete" : {
+        "operationId" : "removeSession",
         "parameters" : [ {
-          "name" : "X-User-Id",
-          "in" : "header",
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/audit-events" : {
+      "get" : {
+        "operationId" : "history",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "subjectType",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "subjectId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SliceAuditEvent"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-audit-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/organisations" : {
+      "get" : {
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SliceOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/organisations/{organisationId}" : {
+      "get" : {
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/organisations/{organisationId}/members" : {
+      "get" : {
+        "operationId" : "members_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SliceMemberView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/organisations/{organisationId}/reinstate" : {
+      "post" : {
+        "operationId" : "reinstate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Reason"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/organisations/{organisationId}/suspend" : {
+      "post" : {
+        "operationId" : "suspend",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Reason"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/all" : {
+      "get" : {
+        "operationId" : "getAllUsers",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/by-phone" : {
+      "get" : {
+        "operationId" : "getUserByPhone",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "phone",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -23,23 +1604,901 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/by-role" : {
+      "get" : {
+        "operationId" : "getUsersByRole",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "role",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/{id}" : {
+      "get" : {
+        "operationId" : "getUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/{id}/roles" : {
+      "post" : {
+        "operationId" : "addRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseString"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/{id}/roles/{roleName}" : {
+      "delete" : {
+        "operationId" : "removeRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "roleName",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseString"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/admin/users/{userId}/status" : {
+      "put" : {
+        "operationId" : "updateUserStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusUpdateDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseString"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "admin-user-controller" ]
+      }
+    },
+    "/api/v1/internal/identity/dine-in-guests" : {
+      "post" : {
+        "operationId" : "linkDineInGuest",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DineInGuestLinkRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DineInGuestLinked"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-dine-in-guest-controller" ]
+      }
+    },
+    "/api/v1/internal/organisations/{organisationId}/businesses" : {
+      "get" : {
+        "operationId" : "businesses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrganisationBusinessDto"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/organisations/{organisationId}/members" : {
+      "get" : {
+        "operationId" : "members_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "permission",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "ORG_VIEW", "ORG_MANAGE", "MEMBERS_MANAGE", "BUSINESS_APPLY", "OUTLET_MANAGE", "MENU_MANAGE", "STOCK_TOGGLE", "ORDERS_OPERATE", "EARNINGS_VIEW", "PAYOUTS_MANAGE", "ADS_VIEW", "ADS_MANAGE", "WALLET_VIEW", "WALLET_TOPUP" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "format" : "uuid",
+                    "type" : "string"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/organisations/{organisationId}/members/{userId}" : {
+      "get" : {
+        "operationId" : "membership",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MembershipDto"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-organisation-controller" ]
+      }
+    },
+    "/api/v1/internal/users/{userId}/organisations" : {
+      "get" : {
+        "operationId" : "memberships",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MembershipDto"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "internal-user-organisations-controller" ]
+      }
+    },
+    "/api/v1/organisation-invitations" : {
+      "get" : {
+        "operationId" : "mine",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-invitation-controller" ]
+      }
+    },
+    "/api/v1/organisation-invitations/{invitationId}/accept" : {
+      "post" : {
+        "operationId" : "accept",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "invitationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-invitation-controller" ]
+      }
+    },
+    "/api/v1/organisation-invitations/{invitationId}/decline" : {
+      "post" : {
+        "operationId" : "decline",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "invitationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-invitation-controller" ]
+      }
+    },
+    "/api/v1/organisations" : {
+      "get" : {
+        "operationId" : "list",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSliceOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      },
+      "post" : {
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Name"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}" : {
+      "get" : {
+        "operationId" : "get",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      },
+      "patch" : {
+        "operationId" : "rename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Name"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}/invitations" : {
+      "get" : {
+        "operationId" : "invitations",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      },
+      "post" : {
+        "operationId" : "invite",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Invite"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}/invitations/{invitationId}" : {
+      "delete" : {
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "invitationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}/members" : {
+      "get" : {
+        "operationId" : "members",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseSliceMemberView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}/members/{userId}" : {
+      "delete" : {
+        "operationId" : "remove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      },
+      "patch" : {
+        "operationId" : "role",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeRole"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseMemberView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/organisations/{organisationId}/ownership-transfer" : {
+      "post" : {
+        "operationId" : "transfer",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "organisationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Transfer"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "organisation-controller" ]
+      }
+    },
+    "/api/v1/users/me/portals" : {
+      "get" : {
+        "operationId" : "portals",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPortalView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "portal-controller" ]
+      }
+    },
+    "/api/v1/users/profile" : {
+      "get" : {
+        "operationId" : "getProfile",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "X-User-Id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseProfileResponseDto"
                 }
               }
-            }
+            },
+            "description" : "OK"
           }
-        }
+        },
+        "tags" : [ "user-controller" ]
       },
       "put" : {
-        "tags" : [ "user-controller" ],
         "operationId" : "updateProfile",
         "parameters" : [ {
-          "name" : "X-User-Id",
           "in" : "header",
+          "name" : "X-User-Id",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -57,2481 +2516,22 @@
         },
         "responses" : {
           "200" : {
-            "description" : "OK",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseProfileResponseDto"
                 }
               }
-            }
+            },
+            "description" : "OK"
           }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/{userId}/status" : {
-      "put" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "updateUserStatus",
-        "parameters" : [ {
-          "name" : "userId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/StatusUpdateDTO"
-              }
-            }
-          },
-          "required" : true
         },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations" : {
-      "get" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "list",
-        "parameters" : [ {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSliceOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "create",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Name"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}/ownership-transfer" : {
-      "post" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "transfer",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Transfer"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}/invitations" : {
-      "get" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "invitations",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "invite",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Invite"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisation-invitations/{invitationId}/decline" : {
-      "post" : {
-        "tags" : [ "organisation-invitation-controller" ],
-        "operationId" : "decline",
-        "parameters" : [ {
-          "name" : "invitationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisation-invitations/{invitationId}/accept" : {
-      "post" : {
-        "tags" : [ "organisation-invitation-controller" ],
-        "operationId" : "accept",
-        "parameters" : [ {
-          "name" : "invitationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseInvitationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/identity/dine-in-guests" : {
-      "post" : {
-        "tags" : [ "internal-dine-in-guest-controller" ],
-        "operationId" : "linkDineInGuest",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/DineInGuestLinkRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/DineInGuestLinked"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/{id}/roles" : {
-      "post" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "addRole",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RoleRequestDTO"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/organisations/{organisationId}/suspend" : {
-      "post" : {
-        "tags" : [ "admin-organisation-controller" ],
-        "operationId" : "suspend",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Reason"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/organisations/{organisationId}/reinstate" : {
-      "post" : {
-        "tags" : [ "admin-organisation-controller" ],
-        "operationId" : "reinstate",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Reason"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/session" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "createSession",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/SessionRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/session/refresh" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "refresh",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/otp" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "initiateLogin",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/OtpRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/logout" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "logout",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/admin-session" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "createAdminSession",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/AdminSessionRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSessionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/admin-session/otp" : {
-      "post" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "initiateAdminOtp",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}" : {
-      "get" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "get",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "rename",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/Name"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}/members/{userId}" : {
-      "delete" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "remove",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "userId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "role",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "userId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ChangeRole"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseMemberView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/users/me/portals" : {
-      "get" : {
-        "tags" : [ "portal-controller" ],
-        "operationId" : "portals",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseListPortalView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}/members" : {
-      "get" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "members",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSliceMemberView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisation-invitations" : {
-      "get" : {
-        "tags" : [ "organisation-invitation-controller" ],
-        "operationId" : "mine",
-        "parameters" : [ {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseSliceInvitationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/users/{userId}/organisations" : {
-      "get" : {
-        "tags" : [ "internal-user-organisations-controller" ],
-        "operationId" : "memberships",
-        "parameters" : [ {
-          "name" : "userId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/MembershipDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/organisations/{organisationId}/members" : {
-      "get" : {
-        "tags" : [ "internal-organisation-controller" ],
-        "operationId" : "members_1",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "permission",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "ORG_VIEW", "ORG_MANAGE", "MEMBERS_MANAGE", "BUSINESS_APPLY", "OUTLET_MANAGE", "MENU_MANAGE", "STOCK_TOGGLE", "ORDERS_OPERATE", "EARNINGS_VIEW", "PAYOUTS_MANAGE", "ADS_VIEW", "ADS_MANAGE", "WALLET_VIEW", "WALLET_TOPUP" ]
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "string",
-                    "format" : "uuid"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/organisations/{organisationId}/members/{userId}" : {
-      "get" : {
-        "tags" : [ "internal-organisation-controller" ],
-        "operationId" : "membership",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "userId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/MembershipDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/organisations/{organisationId}/businesses" : {
-      "get" : {
-        "tags" : [ "internal-organisation-controller" ],
-        "operationId" : "businesses",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/OrganisationBusinessDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/{id}" : {
-      "get" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "getUser",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/by-role" : {
-      "get" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "getUsersByRole",
-        "parameters" : [ {
-          "name" : "role",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 50
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/by-phone" : {
-      "get" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "getUserByPhone",
-        "parameters" : [ {
-          "name" : "phone",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseUserDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/all" : {
-      "get" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "getAllUsers",
-        "parameters" : [ {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 50
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponsePageResponseDtoUserDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/organisations" : {
-      "get" : {
-        "tags" : [ "admin-organisation-controller" ],
-        "operationId" : "list_1",
-        "parameters" : [ {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SliceOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/organisations/{organisationId}" : {
-      "get" : {
-        "tags" : [ "admin-organisation-controller" ],
-        "operationId" : "get_1",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/AdminOrganisationView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/organisations/{organisationId}/members" : {
-      "get" : {
-        "tags" : [ "admin-organisation-controller" ],
-        "operationId" : "members_2",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SliceMemberView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/audit-events" : {
-      "get" : {
-        "tags" : [ "admin-audit-controller" ],
-        "operationId" : "history",
-        "parameters" : [ {
-          "name" : "subjectType",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "subjectId",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SliceAuditEvent"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/sessions" : {
-      "get" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "getActiveSessions",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseListSessionInfo"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "removeAllSessions",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/organisations/{organisationId}/invitations/{invitationId}" : {
-      "delete" : {
-        "tags" : [ "organisation-controller" ],
-        "operationId" : "revoke",
-        "parameters" : [ {
-          "name" : "organisationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "invitationId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/internal/admin/users/{id}/roles/{roleName}" : {
-      "delete" : {
-        "tags" : [ "admin-user-controller" ],
-        "operationId" : "removeRole",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
-          "name" : "roleName",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/sessions/{sessionId}" : {
-      "delete" : {
-        "tags" : [ "auth-controller" ],
-        "operationId" : "removeSession",
-        "parameters" : [ {
-          "name" : "sessionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
+        "tags" : [ "user-controller" ]
       }
     }
   },
-  "components" : {
-    "schemas" : {
-      "UpdateProfileRequest" : {
-        "required" : [ "name" ],
-        "type" : "object",
-        "properties" : {
-          "name" : {
-            "maxLength" : 100,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "email" : {
-            "maxLength" : 255,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "phone" : {
-            "maxLength" : 20,
-            "minLength" : 0,
-            "pattern" : "^\\+?[1-9]\\d{1,14}$",
-            "type" : "string"
-          }
-        }
-      },
-      "ApiResponseProfileResponseDto" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/ProfileResponseDto"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "ProfileResponseDto" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "email" : {
-            "type" : "string"
-          },
-          "phone" : {
-            "type" : "string"
-          }
-        }
-      },
-      "StatusUpdateDTO" : {
-        "required" : [ "isActive" ],
-        "type" : "object",
-        "properties" : {
-          "isActive" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponseString" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "string"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "Name" : {
-        "required" : [ "displayName" ],
-        "type" : "object",
-        "properties" : {
-          "displayName" : {
-            "maxLength" : 120,
-            "minLength" : 0,
-            "type" : "string"
-          }
-        }
-      },
-      "ApiResponseOrganisationView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/OrganisationView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "BusinessView" : {
-        "type" : "object",
-        "properties" : {
-          "businessType" : {
-            "type" : "string",
-            "enum" : [ "RESTAURANT" ]
-          },
-          "businessId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "applicationStatus" : {
-            "type" : "string",
-            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ]
-          },
-          "reason" : {
-            "type" : "string"
-          }
-        }
-      },
-      "OrganisationView" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "displayName" : {
-            "type" : "string"
-          },
-          "status" : {
-            "type" : "string",
-            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ]
-          },
-          "myRole" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "updatedAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "businesses" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/BusinessView"
-            }
-          }
-        }
-      },
-      "Transfer" : {
-        "required" : [ "userId" ],
-        "type" : "object",
-        "properties" : {
-          "userId" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }
-      },
-      "Invite" : {
-        "required" : [ "phoneNumber", "role" ],
-        "type" : "object",
-        "properties" : {
-          "phoneNumber" : {
-            "pattern" : "[0-9]{10}",
-            "type" : "string"
-          },
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          }
-        }
-      },
-      "ApiResponseInvitationView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/InvitationView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "InvitationView" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "organisationId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "phoneNumber" : {
-            "type" : "string"
-          },
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          },
-          "status" : {
-            "type" : "string",
-            "enum" : [ "PENDING", "ACCEPTED", "DECLINED", "REVOKED", "EXPIRED" ]
-          },
-          "expiresAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "organisationName" : {
-            "type" : "string"
-          }
-        }
-      },
-      "DineInGuestLinkRequest" : {
-        "required" : [ "outletId", "phone", "requestedByUserId", "sessionId" ],
-        "type" : "object",
-        "properties" : {
-          "phone" : {
-            "pattern" : "[0-9]{10}",
-            "type" : "string"
-          },
-          "outletId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "sessionId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "requestedByUserId" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }
-      },
-      "DineInGuestLinked" : {
-        "type" : "object",
-        "properties" : {
-          "userId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "newAccount" : {
-            "type" : "boolean"
-          },
-          "maskedPhone" : {
-            "type" : "string"
-          }
-        }
-      },
-      "RoleRequestDTO" : {
-        "required" : [ "roleName" ],
-        "type" : "object",
-        "properties" : {
-          "roleName" : {
-            "maxLength" : 50,
-            "minLength" : 0,
-            "pattern" : "ADMIN",
-            "type" : "string"
-          }
-        }
-      },
-      "Reason" : {
-        "required" : [ "reason" ],
-        "type" : "object",
-        "properties" : {
-          "reason" : {
-            "maxLength" : 500,
-            "minLength" : 10,
-            "type" : "string"
-          }
-        }
-      },
-      "SessionRequest" : {
-        "required" : [ "otp", "phoneNumber" ],
-        "type" : "object",
-        "properties" : {
-          "phoneNumber" : {
-            "pattern" : "[0-9]{10}",
-            "type" : "string"
-          },
-          "otp" : {
-            "pattern" : "[0-9]{6}",
-            "type" : "string"
-          },
-          "deviceInfo" : {
-            "maxLength" : 200,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "os" : {
-            "maxLength" : 80,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "browser" : {
-            "maxLength" : 80,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "replaceSessionId" : {
-            "pattern" : "[0-9a-fA-F-]{36}",
-            "type" : "string"
-          }
-        }
-      },
-      "ApiResponseSessionResponse" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/SessionResponse"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SessionResponse" : {
-        "type" : "object",
-        "properties" : {
-          "token" : {
-            "type" : "string"
-          },
-          "newUser" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "OtpRequest" : {
-        "required" : [ "phoneNumber" ],
-        "type" : "object",
-        "properties" : {
-          "phoneNumber" : {
-            "pattern" : "[0-9]{10}",
-            "type" : "string"
-          }
-        }
-      },
-      "ApiResponseVoid" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "object"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "AdminSessionRequest" : {
-        "required" : [ "otp" ],
-        "type" : "object",
-        "properties" : {
-          "otp" : {
-            "pattern" : "[0-9]{6}",
-            "type" : "string"
-          },
-          "replaceSessionId" : {
-            "pattern" : "[0-9a-fA-F-]{36}",
-            "type" : "string"
-          }
-        }
-      },
-      "ChangeRole" : {
-        "required" : [ "role" ],
-        "type" : "object",
-        "properties" : {
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          }
-        }
-      },
-      "ApiResponseMemberView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/MemberView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "MemberView" : {
-        "type" : "object",
-        "properties" : {
-          "userId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "phoneNumber" : {
-            "type" : "string"
-          },
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          },
-          "status" : {
-            "type" : "string",
-            "enum" : [ "ACTIVE", "REMOVED" ]
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "ApiResponseListPortalView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/PortalView"
-            }
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "OrganisationPortal" : {
-        "type" : "object",
-        "properties" : {
-          "organisationId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "displayName" : {
-            "type" : "string"
-          },
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          },
-          "status" : {
-            "type" : "string",
-            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ]
-          },
-          "businesses" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/BusinessView"
-            }
-          }
-        }
-      },
-      "PortalView" : {
-        "type" : "object",
-        "properties" : {
-          "portal" : {
-            "type" : "string",
-            "enum" : [ "CUSTOMER", "RESTAURANT", "DELIVERY", "ADS", "BUSINESS", "KITCHEN", "ADMIN" ]
-          },
-          "state" : {
-            "type" : "string",
-            "enum" : [ "AVAILABLE", "PENDING_REVIEW", "ACTION_REQUIRED", "NOT_STARTED", "SUSPENDED", "STEP_UP_REQUIRED", "UNAVAILABLE" ]
-          },
-          "organisations" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/OrganisationPortal"
-            }
-          },
-          "reason" : {
-            "type" : "string"
-          }
-        }
-      },
-      "ApiResponseSliceOrganisationView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/SliceOrganisationView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "PageableObject" : {
-        "required" : [ "offset", "pageNumber", "pageSize", "paged", "unpaged" ],
-        "type" : "object",
-        "properties" : {
-          "paged" : {
-            "type" : "boolean"
-          },
-          "unpaged" : {
-            "type" : "boolean"
-          },
-          "pageNumber" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "pageSize" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "offset" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
-      "SliceOrganisationView" : {
-        "type" : "object",
-        "properties" : {
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "content" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/OrganisationView"
-            }
-          },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "SortObject" : {
-        "required" : [ "empty", "sorted", "unsorted" ],
-        "type" : "object",
-        "properties" : {
-          "empty" : {
-            "type" : "boolean"
-          },
-          "sorted" : {
-            "type" : "boolean"
-          },
-          "unsorted" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponseSliceMemberView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/SliceMemberView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SliceMemberView" : {
-        "type" : "object",
-        "properties" : {
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "content" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/MemberView"
-            }
-          },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponseSliceInvitationView" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/SliceInvitationView"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SliceInvitationView" : {
-        "type" : "object",
-        "properties" : {
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "content" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/InvitationView"
-            }
-          },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "MembershipDto" : {
-        "required" : [ "organisationId", "organisationStatus", "role", "status", "userId" ],
-        "type" : "object",
-        "properties" : {
-          "organisationId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "organisationStatus" : {
-            "type" : "string",
-            "enum" : [ "ACTIVE", "SUSPENDED", "CLOSED" ]
-          },
-          "userId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "role" : {
-            "type" : "string",
-            "enum" : [ "OWNER", "ADMIN", "MANAGER", "STAFF" ]
-          },
-          "status" : {
-            "type" : "string",
-            "enum" : [ "ACTIVE", "REMOVED" ]
-          }
-        }
-      },
-      "OrganisationBusinessDto" : {
-        "required" : [ "applicationStatus", "businessId", "businessType" ],
-        "type" : "object",
-        "properties" : {
-          "businessType" : {
-            "type" : "string",
-            "enum" : [ "RESTAURANT" ]
-          },
-          "businessId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "applicationStatus" : {
-            "type" : "string",
-            "enum" : [ "DRAFT", "SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "SUSPENDED" ]
-          }
-        }
-      },
-      "ApiResponseUserDTO" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/UserDTO"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "UserDTO" : {
-        "required" : [ "id", "phoneNumber", "roles" ],
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "phoneNumber" : {
-            "type" : "string"
-          },
-          "roles" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "enum" : [ "CUSTOMER", "DELIVERY", "RESTAURANT", "ADMIN", "BUSINESS", "KITCHEN" ]
-            }
-          },
-          "active" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponsePageResponseDtoUserDTO" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "$ref" : "#/components/schemas/PageResponseDtoUserDTO"
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "PageResponseDtoUserDTO" : {
-        "required" : [ "content", "empty", "first", "last", "number", "numberOfElements", "size", "totalElements", "totalPages" ],
-        "type" : "object",
-        "properties" : {
-          "content" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/UserDTO"
-            }
-          },
-          "totalElements" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "totalPages" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "first" : {
-            "type" : "boolean"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "AdminOrganisationView" : {
-        "type" : "object",
-        "properties" : {
-          "organisation" : {
-            "$ref" : "#/components/schemas/OrganisationView"
-          },
-          "members" : {
-            "$ref" : "#/components/schemas/SliceMemberView"
-          }
-        }
-      },
-      "AuditEvent" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "occurredAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "actorUserId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "actorKind" : {
-            "type" : "string"
-          },
-          "action" : {
-            "type" : "string",
-            "enum" : [ "ORGANISATION_CREATED", "ORGANISATION_RENAMED", "ORGANISATION_SUSPENDED", "ORGANISATION_REINSTATED", "ORGANISATION_CLOSED", "MEMBER_INVITED", "INVITATION_ACCEPTED", "INVITATION_DECLINED", "INVITATION_REVOKED", "INVITATION_EXPIRED", "MEMBER_ROLE_CHANGED", "MEMBER_REMOVED", "OWNERSHIP_TRANSFERRED", "APPLICATION_DRAFT_CREATED", "APPLICATION_SUBMITTED", "APPLICATION_IN_REVIEW", "APPLICATION_APPROVED", "APPLICATION_REJECTED", "APPLICATION_SUSPENDED", "APPLICATION_REINSTATED", "KYC_DOCUMENT_VIEWED", "ADMIN_STEP_UP", "TOPUP_REQUESTED", "TOPUP_SETTLED", "TOPUP_FAILED", "CREATIVE_APPROVED", "CREATIVE_REJECTED", "CAMPAIGN_ACTIVATED", "CAMPAIGN_PAUSED", "KITCHEN_STAFF_ADDED", "KITCHEN_STAFF_UPDATED", "KITCHEN_STAFF_REMOVED", "KITCHEN_STAFF_BOUND", "KITCHEN_STAFF_LEFT", "KITCHEN_CHEF_FORCED_OFFLINE", "DELAY_PENALTY_WAIVED", "DELAY_PENALTY_DISPUTED", "DELAY_DISPUTE_UPHELD", "DELAY_PENALTY_PAUSE_CREATED", "DINING_TABLE_CREATED", "DINING_TABLE_UPDATED", "DINING_TABLE_DEACTIVATED", "DINING_TABLE_REACTIVATED", "DINING_SESSION_OPENED", "DINING_SESSION_HANDED_OFF", "DINING_SESSION_CLOSED", "DINING_GUEST_LINKED", "DINING_GUEST_REFUSED", "DINING_ORDER_PLACED", "DINING_ORDER_COLLECTED", "DINING_ORDER_SETTLE_AT_RESTAURANT", "DINING_LINE_SERVED", "DINING_LINE_UNSERVED", "DINING_LINE_VOID_REQUESTED", "DINING_LINE_VOID_APPROVED", "PICKUP_HANDED_OVER", "PICKUP_HANDED_OVER_WITHOUT_CODE", "PICKUP_CODE_REFUSED", "DINING_GUEST_SELF_SEATED", "DINING_SELF_SEAT_REFUSED", "DINING_TABLE_QR_REPRINTED", "DINING_ASSISTANCE_ACKED", "DINING_GUEST_LEFT", "DINING_ASSISTANCE_REQUESTED", "OUTLET_SERVICE_MODES_CHANGED", "RESERVATION_HELD", "RESERVATION_CONFIRMED", "RESERVATION_MODIFIED", "RESERVATION_CANCELLED", "RESERVATION_SEATED", "RESERVATION_NO_SHOW", "RESERVATION_COMPLETED", "RESERVATION_POLICY_CHANGED", "BOOKING_CREDIT_SKIPPED", "RESERVATION_TABLE_MOVED", "DINING_SEATED_OVER_BOOKING" ]
-          },
-          "subjectType" : {
-            "type" : "string"
-          },
-          "subjectId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "organisationId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "reason" : {
-            "type" : "string"
-          },
-          "traceId" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
-      "SliceAuditEvent" : {
-        "type" : "object",
-        "properties" : {
-          "first" : {
-            "type" : "boolean"
-          },
-          "last" : {
-            "type" : "boolean"
-          },
-          "pageable" : {
-            "$ref" : "#/components/schemas/PageableObject"
-          },
-          "sort" : {
-            "$ref" : "#/components/schemas/SortObject"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "content" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/AuditEvent"
-            }
-          },
-          "number" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "numberOfElements" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "empty" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "ApiResponseListSessionInfo" : {
-        "required" : [ "message", "success", "timestamp" ],
-        "type" : "object",
-        "properties" : {
-          "success" : {
-            "type" : "boolean"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/SessionInfo"
-            }
-          },
-          "timestamp" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "SessionInfo" : {
-        "required" : [ "absoluteExpiresAt", "browser", "createdAt", "deviceInfo", "lastActive", "os", "purpose", "sessionId" ],
-        "type" : "object",
-        "properties" : {
-          "sessionId" : {
-            "type" : "string"
-          },
-          "deviceInfo" : {
-            "type" : "string"
-          },
-          "os" : {
-            "type" : "string"
-          },
-          "browser" : {
-            "type" : "string"
-          },
-          "lastActive" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "purpose" : {
-            "type" : "string",
-            "enum" : [ "LOGIN", "ADMIN" ]
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "absoluteExpiresAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      }
-    }
-  }
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ]
 }
