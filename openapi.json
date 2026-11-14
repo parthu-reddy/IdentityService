@@ -725,6 +725,13 @@
       },
       "PortalView" : {
         "properties" : {
+          "kitchenRoles" : {
+            "items" : {
+              "enum" : [ "MANAGER", "CHEF", "WAITER" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "organisations" : {
             "items" : {
               "$ref" : "#/components/schemas/OrganisationPortal"

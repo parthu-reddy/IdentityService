@@ -26,8 +26,13 @@ class PortalServiceKitchenTest extends EntitlementH2Fixture {
         var org=organisation(person(),status,MembershipStatus.ACTIVE);business(org,application);return org;
     }
     void staff(Organisation org,String phone,UUID userId,KitchenStaffStatus status) {
+        staff(org,phone,userId,status,KitchenRole.MANAGER);
+    }
+    void staff(Organisation org,String phone,UUID userId,KitchenStaffStatus status,KitchenRole... roles) {
+        var held=List.of(roles);
         kitchens.saveAndFlush(KitchenEntitlement.builder().staffId(UUID.randomUUID()).organisationId(org.getId()).outletId(UUID.randomUUID())
-                .phoneNumber(phone).userId(userId).manager(true).chef(false).status(status).staffVersion(1).updatedAt(now).build());
+                .phoneNumber(phone).userId(userId).manager(held.contains(KitchenRole.MANAGER)).chef(held.contains(KitchenRole.CHEF))
+                .waiter(held.contains(KitchenRole.WAITER)).status(status).staffVersion(1).updatedAt(now).build());
     }
 
     @Test void aLiveRowInAnOpenRestaurantIsAvailableWithoutOrganisationDetails() {
@@ -58,5 +63,28 @@ class PortalServiceKitchenTest extends EntitlementH2Fixture {
         staff(org,person.getPhoneNumber(),person.getId(),KitchenStaffStatus.REMOVED);
         var other=person();staff(org,person.getPhoneNumber(),other.getId(),KitchenStaffStatus.ACTIVE);
         assertEquals(State.UNAVAILABLE,kitchen(person.getId()).state(),"a row bound to someone else no longer follows the phone");
+    }
+
+    @Test void anAvailableTileNamesEveryRoleHeldInOpenKitchensInEnumOrder() {
+        var person=person();var open=restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED);
+        staff(open,person.getPhoneNumber(),person.getId(),KitchenStaffStatus.ACTIVE,KitchenRole.WAITER);
+        assertEquals(List.of(KitchenRole.WAITER),kitchen(person.getId()).kitchenRoles());
+        staff(restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED),person.getPhoneNumber(),null,KitchenStaffStatus.INVITED,KitchenRole.CHEF);
+        assertEquals(List.of(KitchenRole.CHEF,KitchenRole.WAITER),kitchen(person.getId()).kitchenRoles(),"a role at a second outlet counts");
+    }
+    @Test void aRoleInAClosedKitchenIsNotNamed() {
+        var person=person();
+        staff(restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED),person.getPhoneNumber(),person.getId(),KitchenStaffStatus.ACTIVE,KitchenRole.CHEF);
+        staff(restaurant(OrganisationStatus.SUSPENDED,ApplicationStatus.APPROVED),person.getPhoneNumber(),person.getId(),KitchenStaffStatus.ACTIVE,KitchenRole.WAITER);
+        assertEquals(List.of(KitchenRole.CHEF),kitchen(person.getId()).kitchenRoles());
+    }
+    @Test void aSuspendedOrHiddenTileNamesNoRoles() {
+        var person=person();assertNull(kitchen(person.getId()).kitchenRoles());
+        staff(restaurant(OrganisationStatus.SUSPENDED,ApplicationStatus.APPROVED),person.getPhoneNumber(),person.getId(),KitchenStaffStatus.ACTIVE,KitchenRole.CHEF);
+        assertNull(kitchen(person.getId()).kitchenRoles());
+    }
+    @Test void otherTilesNeverNameKitchenRoles() {
+        var person=person();staff(restaurant(OrganisationStatus.ACTIVE,ApplicationStatus.APPROVED),person.getPhoneNumber(),person.getId(),KitchenStaffStatus.ACTIVE,KitchenRole.CHEF);
+        portals.portals(person.getId()).stream().filter(v->v.portal()!=Portal.KITCHEN).forEach(v->assertNull(v.kitchenRoles(),v.portal().name()));
     }
 }

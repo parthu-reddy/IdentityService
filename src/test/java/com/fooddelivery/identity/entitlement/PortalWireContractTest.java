@@ -16,8 +16,9 @@ class PortalWireContractTest {
     @Test void optionalPortalAndBusinessReasonsAreOmittedRatherThanInvalidNullStrings() throws Exception {
         var business=new BusinessView(BusinessType.RESTAURANT,UUID.randomUUID(),ApplicationStatus.APPROVED,null);
         var org=new OrganisationPortal(UUID.randomUUID(),"Team",OrganisationRole.OWNER,OrganisationStatus.ACTIVE,List.of(business));
-        var json=mapper.readTree(mapper.writeValueAsString(new PortalView(Portal.RESTAURANT,State.AVAILABLE,List.of(org),null)));
+        var json=mapper.readTree(mapper.writeValueAsString(new PortalView(Portal.RESTAURANT,State.AVAILABLE,List.of(org),null,null)));
         assertFalse(json.has("reason"));
+        assertFalse(json.has("kitchenRoles"),"only an available KITCHEN tile names roles");
         assertFalse(json.path("organisations").get(0).path("businesses").get(0).has("reason"));
         assertEquals("AVAILABLE",json.path("state").asText());
     }
@@ -28,5 +29,10 @@ class PortalWireContractTest {
         assertFalse(json.has("name"));
         assertEquals("MANAGER",json.path("role").asText());
         assertEquals("8999000001",json.path("phoneNumber").asText());
+    }
+
+    @Test void kitchenRolesTravelAsEnumNames() throws Exception {
+        var json=mapper.readTree(mapper.writeValueAsString(new PortalView(Portal.KITCHEN,State.AVAILABLE,List.of(),null,List.of(KitchenRole.CHEF,KitchenRole.WAITER))));
+        assertEquals("[\"CHEF\",\"WAITER\"]",json.path("kitchenRoles").toString());
     }
 }
