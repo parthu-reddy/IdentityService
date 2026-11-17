@@ -164,6 +164,8 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 try {
                     Future<?> submitted = workers.submit(() -> {
                         if (done.get() || System.nanoTime() >= deadline) { completion.finish(UNAVAILABLE, null); return; }
+                        // Only the opaque correlation enters the worker's log context, and only for this call.
+                        org.slf4j.MDC.put(com.fooddelivery.identity.service.MapsSessionTokens.CORRELATION, requestCorrelation.get());
                         try { completion.finish(null, operations.execute(operation, body)); }
                         catch (MapsIdentityException ex) { completion.finish(ex.code(), null); }
                         catch (MaxSessionsReachedException ex) {
@@ -179,6 +181,7 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                                     ? limited.retryAfterSeconds() : 1;
                             completion.finish(status == 401 ? INACTIVE : status == 404 ? NOT_FOUND : status == 429 ? OVERLOADED : UNAVAILABLE, null, retry);
                         } catch (Exception ex) { completion.finish(UNAVAILABLE, null); }
+                        finally { org.slf4j.MDC.remove(com.fooddelivery.identity.service.MapsSessionTokens.CORRELATION); }
                     });
                     future.set(submitted);
                     if (done.get()) submitted.cancel(true);

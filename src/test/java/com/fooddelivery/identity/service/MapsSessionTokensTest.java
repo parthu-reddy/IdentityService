@@ -179,4 +179,54 @@ class MapsSessionTokensTest {
         var retired=new MapsSessionTokens(next,clock,new DefaultResourceLoader());
         assertThrows(MapsIdentityException.class,()->retired.verify(old,false));assertNotNull(retired.verify(fresh,false));
     }
+
+    /** Each refusal is the same INACTIVE to the caller; only the fixed check name is logged, never token bytes. */
+    @Test void eachRefusalLogsOnlyTheFirstFailedCheck() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MapsSessionTokens.class);
+        var events = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        events.start(); logger.addAppender(events);
+        org.slf4j.MDC.put(MapsSessionTokens.CORRELATION, "0123456789abcdef0123456789abcdef");
+        try {
+            String valid = tokens.issue(user, session);
+            String header = "{\"alg\":\"RS256\",\"typ\":\"maps-session+jwt\",\"kid\":\"current\"}";
+            String payload = body(valid).toString();
+            var other = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+            var encoder = Base64.getUrlEncoder().withoutPadding();
+            var hmac = javax.crypto.Mac.getInstance("HmacSHA256");
+            hmac.init(new javax.crypto.spec.SecretKeySpec(pair.getPublic().getEncoded(), "HmacSHA256"));
+            String hsPrefix = encoder.encodeToString("{\"alg\":\"HS256\",\"typ\":\"maps-session+jwt\",\"kid\":\"current\"}".getBytes(StandardCharsets.UTF_8))
+                    + "." + encoder.encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+            String hs256 = hsPrefix + "." + encoder.encodeToString(hmac.doFinal(hsPrefix.getBytes(StandardCharsets.US_ASCII)));
+            var cases = new java.util.LinkedHashMap<String, String>();
+            cases.put("format", "a.b");
+            cases.put("header", sign("{\"alg\":\"RS256\",\"typ\":\"maps-session+jwt\",\"kid\":\"current\",\"jku\":\"https://evil.test/k\"}", payload, pair));
+            cases.put("algorithm", hs256);
+            cases.put("type", sign("{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\"current\"}", payload, pair));
+            cases.put("key_id", sign("{\"alg\":\"RS256\",\"typ\":\"maps-session+jwt\",\"kid\":\"unknown\"}", payload, pair));
+            cases.put("signature", sign(header, payload, other));
+            var b = body(valid); b.put("iss", "https://other.test"); cases.put("issuer", sign(b));
+            b = body(valid); b.put("aud", "food-delivery"); cases.put("audience", sign(b));
+            b = body(valid); b.put("exp", NOW.getEpochSecond()); cases.put("expired", sign(b));
+            b = body(valid); b.put("iat", NOW.plusSeconds(1).getEpochSecond()); b.put("exp", NOW.plusSeconds(61).getEpochSecond());
+            cases.put("premature", sign(b));
+            b = body(valid); b.put("exp", NOW.plusSeconds(901).getEpochSecond()); cases.put("lifetime", sign(b));
+            b = body(valid); b.put("roles", "ADMIN"); cases.put("claim_set", sign(b));
+            for (var entry : cases.entrySet()) {
+                events.list.clear();
+                inactive(entry.getValue());
+                assertEquals(1, events.list.size(), entry.getKey());
+                String line = events.list.getFirst().getFormattedMessage();
+                assertEquals("maps_credential operation=verify stage=" + entry.getKey()
+                        + " cause=rejected correlation=0123456789abcdef0123456789abcdef", line);
+                for (String part : entry.getValue().split("\\.")) if (part.length() > 8) assertFalse(line.contains(part), entry.getKey());
+            }
+            // Zero skew boundaries: issue time equal to now is current; expiry one second after now is current.
+            b = body(valid); b.put("iat", NOW.getEpochSecond()); b.put("exp", NOW.plusSeconds(1).getEpochSecond());
+            events.list.clear();
+            assertEquals(user.getId(), tokens.verify(sign(b), false).subject());
+            assertTrue(events.list.isEmpty());
+        } finally {
+            org.slf4j.MDC.remove(MapsSessionTokens.CORRELATION); logger.detachAppender(events);
+        }
+    }
 }

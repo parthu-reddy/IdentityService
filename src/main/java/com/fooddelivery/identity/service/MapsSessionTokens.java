@@ -9,6 +9,7 @@ import com.fooddelivery.identity.config.MapsIdentityProperties;
 import com.fooddelivery.identity.dto.SessionInfo;
 import com.fooddelivery.identity.entity.AppUser;
 import com.fooddelivery.identity.exception.MapsIdentityException;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -41,6 +42,9 @@ import static com.fooddelivery.identity.exception.MapsIdentityException.Code.INA
 /** A scoped token profile over existing accounts/person sessions, never a second identity authority. */
 public final class MapsSessionTokens {
     public static final String TYPE = "maps-session+jwt";
+    /** MDC key the Maps filter sets for its worker thread; only the opaque request correlation. */
+    public static final String CORRELATION = "maps_correlation";
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(MapsSessionTokens.class);
     private static final ObjectReader JSON = new ObjectMapper().readerFor(JsonNode.class)
             .with(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
             .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
@@ -153,44 +157,81 @@ public final class MapsSessionTokens {
         return builder.signWith(signingKey, SignatureAlgorithm.RS256).compact();
     }
 
+    /**
+     * The first verifier check a refused credential failed. Logged by name only (never claim values or
+     * token bytes) so an operator can tell which boundary refused it; the caller still sees one INACTIVE.
+     */
+    public enum Check { FORMAT, HEADER, CLAIM_SET, ALGORITHM, TYPE, KEY_ID, SIGNATURE, ISSUER, AUDIENCE,
+        EXPIRED, PREMATURE, LIFETIME, SUBJECT }
+
+    private static final class Rejected extends RuntimeException {
+        final Check check;
+        Rejected(Check check) { super(check.name(), null, false, false); this.check = check; }
+    }
+    private static void require(boolean condition, Check check) { if (!condition) throw new Rejected(check); }
+
     /** allowExpired is ONLY for session-specific revocation, never validation/refresh. */
     public Verified verify(String token, boolean allowExpired) {
         try {
-            if (token == null || token.length() > 4096) throw new IllegalArgumentException();
-            String[] parts = token.split("\\.", -1);
-            if (parts.length != 3) throw new IllegalArgumentException();
-            for (String part : parts) if (!part.matches("[A-Za-z0-9_-]+")) throw new IllegalArgumentException();
-            JsonNode header = JSON.readValue(Base64.getUrlDecoder().decode(parts[0]));
-            JsonNode body = JSON.readValue(Base64.getUrlDecoder().decode(parts[1]));
-            boolean publisher = exactKeys(body, PUBLISHER_CLAIMS);
-            if (!exactKeys(header, HEADER) || (!publisher && !exactKeys(body, CLAIMS))
-                    || !"RS256".equals(text(header, "alg")) || !TYPE.equals(text(header, "typ"))) throw new IllegalArgumentException();
-            PublicKey key = keys.get(text(header, "kid"));
-            if (key == null) throw new IllegalArgumentException();
-            var parser = Jwts.parserBuilder().setSigningKey(key).requireIssuer(properties.getAuthority())
-                    .requireAudience(properties.getAudience()).setClock(() -> Date.from(clock.instant())).build();
-            try {
-                parser.parseClaimsJws(token);
-            } catch (ExpiredJwtException expired) {
-                // JJWT verifies the signature before throwing expiration. Strict scope/claim checks
-                // below still run, including the upper lifetime and future-issued constraints.
-                if (!allowExpired) throw expired;
-            }
-            if (!properties.getAuthority().equals(text(body, "iss")) || !properties.getAudience().equals(text(body, "aud")))
-                throw new IllegalArgumentException();
-            String subject = text(body, "sub"), sid = text(body, "session_id");
-            UUID id = canonicalUuid(subject);
-            canonicalUuid(sid);
-            long version = number(body, "ev"), issued = number(body, "iat"), expires = number(body, "exp");
-            Instant iat = Instant.ofEpochSecond(issued), exp = Instant.ofEpochSecond(expires), now = clock.instant();
-            if (version < 0 || !exp.isAfter(iat) || exp.isAfter(iat.plus(properties.getCredentialLifetime()))
-                    || iat.isAfter(now) || (!allowExpired && !exp.isAfter(now))) throw new IllegalArgumentException();
-            Instant mfaAt = publisher ? Instant.ofEpochSecond(number(body, "mfa_at")) : null;
-            if (mfaAt != null && (mfaAt.isBefore(Instant.EPOCH) || mfaAt.isAfter(iat))) throw new IllegalArgumentException();
-            return new Verified(id, sid, version, iat, exp, mfaAt);
+            return verified(token, allowExpired);
+        } catch (Rejected rejected) {
+            throw refuse(rejected.check);
         } catch (Exception ex) {
-            throw new MapsIdentityException(INACTIVE);
+            throw refuse(Check.FORMAT);
         }
+    }
+
+    private static MapsIdentityException refuse(Check check) {
+        LOG.info("maps_credential operation=verify stage={} cause=rejected correlation={}", check.name().toLowerCase(java.util.Locale.ROOT),
+                java.util.Objects.requireNonNullElse(org.slf4j.MDC.get(CORRELATION), "none"));
+        return new MapsIdentityException(INACTIVE);
+    }
+
+    private Verified verified(String token, boolean allowExpired) throws Exception {
+        require(token != null && token.length() <= 4096, Check.FORMAT);
+        String[] parts = token.split("\\.", -1);
+        require(parts.length == 3, Check.FORMAT);
+        for (String part : parts) require(part.matches("[A-Za-z0-9_-]+"), Check.FORMAT);
+        JsonNode header = JSON.readValue(Base64.getUrlDecoder().decode(parts[0]));
+        JsonNode body = JSON.readValue(Base64.getUrlDecoder().decode(parts[1]));
+        // Only the three expected header fields: a token can never name its own key source (jku, x5u, jwk, x5c).
+        require(exactKeys(header, HEADER), Check.HEADER);
+        boolean publisher = exactKeys(body, PUBLISHER_CLAIMS);
+        require(publisher || exactKeys(body, CLAIMS), Check.CLAIM_SET);
+        require("RS256".equals(text(header, "alg")), Check.ALGORITHM);
+        require(TYPE.equals(text(header, "typ")), Check.TYPE);
+        PublicKey key = keys.get(text(header, "kid"));
+        require(key != null, Check.KEY_ID);
+        var parser = Jwts.parserBuilder().setSigningKey(key).requireIssuer(properties.getAuthority())
+                .requireAudience(properties.getAudience()).setClock(() -> Date.from(clock.instant())).build();
+        try {
+            parser.parseClaimsJws(token);
+        } catch (ExpiredJwtException expired) {
+            // JJWT verifies the signature before throwing expiration. Strict scope/claim checks
+            // below still run, including the upper lifetime and future-issued constraints.
+            if (!allowExpired) throw new Rejected(Check.EXPIRED);
+        } catch (io.jsonwebtoken.IncorrectClaimException | io.jsonwebtoken.MissingClaimException claim) {
+            throw new Rejected(Claims.ISSUER.equals(claim.getClaimName()) ? Check.ISSUER
+                    : Claims.AUDIENCE.equals(claim.getClaimName()) ? Check.AUDIENCE : Check.CLAIM_SET);
+        } catch (io.jsonwebtoken.security.SecurityException signature) {
+            throw new Rejected(Check.SIGNATURE);
+        }
+        require(properties.getAuthority().equals(text(body, "iss")), Check.ISSUER);
+        require(properties.getAudience().equals(text(body, "aud")), Check.AUDIENCE);
+        String subject = text(body, "sub"), sid = text(body, "session_id");
+        UUID id;
+        try { id = canonicalUuid(subject); canonicalUuid(sid); }
+        catch (IllegalArgumentException invalid) { throw new Rejected(Check.SUBJECT); }
+        long version = number(body, "ev"), issued = number(body, "iat"), expires = number(body, "exp");
+        Instant iat = Instant.ofEpochSecond(issued), exp = Instant.ofEpochSecond(expires), now = clock.instant();
+        require(version >= 0, Check.CLAIM_SET);
+        // Zero clock skew: iat is inclusive (iat == now is current) and exp is exclusive (exp == now is expired).
+        require(!iat.isAfter(now), Check.PREMATURE);
+        require(allowExpired || exp.isAfter(now), Check.EXPIRED);
+        require(exp.isAfter(iat) && !exp.isAfter(iat.plus(properties.getCredentialLifetime())), Check.LIFETIME);
+        Instant mfaAt = publisher ? Instant.ofEpochSecond(number(body, "mfa_at")) : null;
+        require(mfaAt == null || !mfaAt.isBefore(Instant.EPOCH) && !mfaAt.isAfter(iat), Check.CLAIM_SET);
+        return new Verified(id, sid, version, iat, exp, mfaAt);
     }
 
     private static boolean exactKeys(JsonNode node, Set<String> expected) {
