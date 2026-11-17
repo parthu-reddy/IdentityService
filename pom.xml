@@ -17,6 +17,10 @@
 	</properties>
 	<dependencies>
         <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fooddelivery</groupId>
             <artifactId>common-core</artifactId>
             <version>1.0-SNAPSHOT</version>

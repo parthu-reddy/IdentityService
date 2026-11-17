@@ -115,20 +115,28 @@ public class AuthService {
 
     @Transactional
     public SessionResponse createSession(SessionRequest request) {
-        return createPersonSession(request, null);
+        return createPersonSession(request, null, null);
     }
 
     /** Dedicated peer-authenticated Maps entry; the ordinary credential profile is unchanged. */
     @Transactional
     public SessionResponse createMapsSession(SessionRequest request) {
-        return createPersonSession(request, requireMapsTokens());
+        return createPersonSession(request, requireMapsTokens(), null);
     }
 
-    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens) {
+    @Transactional
+    public SessionResponse createMapsSession(SessionRequest request, String publisherPassword) {
+        return createPersonSession(request, requireMapsTokens(), publisherPassword);
+    }
+
+    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens,
+                                                String publisherPassword) {
         String phone = validPhone(request.phoneNumber());
         verifyOtp(phone, request.otp(), OtpPurpose.LOGIN, mapsTokens != null);
         var provisioned = provisioner.findOrCreate(phone);
         var user = provisioned.user();
+        // Verify only after OTP admission, before any session is replaced or issued.
+        Instant mfaAt = publisherPassword == null ? null : mapsTokens.authenticatePublisher(user.getId(), publisherPassword);
         var candidate =
                 sessions.prepare(
                         user.getId(),
@@ -154,7 +162,7 @@ public class AuthService {
         cache.delete("RATELIMIT:VERIFY:" + phone);
         return new SessionResponse(
                 mapsTokens == null ? token(user, roles, candidate.get(candidate.size() - 1))
-                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1)), provisioned.created());
+                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1), mfaAt), provisioned.created());
     }
 
     @Transactional
@@ -169,7 +177,7 @@ public class AuthService {
             throw new com.fooddelivery.identity.exception.MapsIdentityException(
                     com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE);
         mapsLimit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
-        String credentialResult = tokens.issue(user, session);
+        String credentialResult = tokens.issue(user, session, verified.mfaAt());
         sessions.touch(user.getId(), session.getSessionId());
         return new SessionResponse(credentialResult, false);
     }

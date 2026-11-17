@@ -37,13 +37,19 @@ public class MapsCurrentSessionService {
         Instant checked = clock.instant();
         Instant validUntil = checked.plus(properties.getDecisionLifetime());
         if (token.expiresAt().isBefore(validUntil)) validUntil = token.expiresAt();
+        Instant challenge = token.mfaAt();
+        boolean publisher = challenge != null && user.getId().equals(properties.getPublisherSubject())
+                && checked.isBefore(challenge.plus(MapsSessionTokens.PUBLISHER_FRESHNESS));
+        if (publisher && validUntil.isAfter(challenge.plus(MapsSessionTokens.PUBLISHER_FRESHNESS)))
+            validUntil = challenge.plus(MapsSessionTokens.PUBLISHER_FRESHNESS);
         if (!validUntil.isAfter(checked)) throw new MapsIdentityException(INACTIVE);
         return Map.ofEntries(Map.entry("version", 1), Map.entry("nonce", nonce), Map.entry("active", true),
                 Map.entry("authority", properties.getAuthority()), Map.entry("audience", properties.getAudience()),
                 Map.entry("subject", token.subject().toString()), Map.entry("session_id", token.sessionId()),
                 Map.entry("issued_at", token.issuedAt().toString()), Map.entry("expires_at", token.expiresAt().toString()),
                 Map.entry("checked_at", checked.toString()), Map.entry("valid_until", validUntil.toString()),
-                Map.entry("authentication", Map.of("mfa", false, "methods", java.util.List.of("otp"),
-                        "authenticated_at", session.getCreatedAt().toString())));
+                Map.entry("authentication", Map.of("mfa", publisher, "methods",
+                        publisher ? java.util.List.of("otp", "password") : java.util.List.of("otp"),
+                        "authenticated_at", (publisher ? challenge : session.getCreatedAt()).toString())));
     }
 }

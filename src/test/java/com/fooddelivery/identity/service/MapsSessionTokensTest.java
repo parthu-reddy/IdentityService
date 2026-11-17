@@ -89,6 +89,31 @@ class MapsSessionTokensTest {
         assertEquals(4, verified.version()); assertEquals(NOW.plusSeconds(900), verified.expiresAt());
         assertEquals(7, body(credential).size()); assertFalse(body(credential).has("phone")); assertFalse(body(credential).has("roles"));
     }
+    @Test void publisherPasswordIsOptInSubjectBoundAndCannotRenewItsOriginalTimestamp() throws Exception {
+        String password = UUID.randomUUID().toString();
+        Path passwordFile = temp.resolve("publisher-password-hash");
+        Files.writeString(passwordFile, new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12).encode(password));
+        Files.setPosixFilePermissions(passwordFile, PosixFilePermissions.fromString("rw-------"));
+        var properties = configured(temp, pair);
+        properties.setPublisherSubject(user.getId());
+        properties.setPublisherPasswordFile(passwordFile.toString());
+        var publisherTokens = new MapsSessionTokens(properties, clock, new org.springframework.core.io.DefaultResourceLoader());
+        assertThrows(MapsIdentityException.class, () -> tokens.authenticatePublisher(user.getId(), password));
+        assertThrows(MapsIdentityException.class, () -> publisherTokens.authenticatePublisher(UUID.randomUUID(), password));
+        assertThrows(MapsIdentityException.class, () -> publisherTokens.authenticatePublisher(user.getId(), UUID.randomUUID().toString()));
+        var original = publisherTokens.authenticatePublisher(user.getId(), password);
+        var credential = publisherTokens.verify(publisherTokens.issue(user, session, original), false);
+        assertEquals(user.getId(), credential.subject());
+        assertEquals(session.getSessionId(), credential.sessionId());
+        assertEquals(NOW, credential.mfaAt());
+        assertNull(publisherTokens.verify(publisherTokens.issue(user, session), false).mfaAt());
+
+        when(clock.instant()).thenReturn(NOW.plusSeconds(299));
+        assertEquals(original, publisherTokens.verify(publisherTokens.issue(user, session, original), false).mfaAt());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(300));
+        assertNull(publisherTokens.verify(publisherTokens.issue(user, session, original), false).mfaAt());
+    }
+
     @Test void accountAndSessionPurposeCannotBePromotedAtIssuance() {
         user.setActive(false); assertThrows(MapsIdentityException.class, () -> tokens.issue(user, session));
         user.setActive(true); session.setPurpose(OtpPurpose.ADMIN);

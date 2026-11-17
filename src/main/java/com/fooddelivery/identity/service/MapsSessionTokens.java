@@ -13,6 +13,10 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -30,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import static com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE;
 
@@ -41,12 +46,21 @@ public final class MapsSessionTokens {
             .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private static final Set<String> HEADER = Set.of("alg", "typ", "kid");
     private static final Set<String> CLAIMS = Set.of("iss", "aud", "sub", "session_id", "ev", "iat", "exp");
+    private static final Set<String> PUBLISHER_CLAIMS =
+            Set.of("iss", "aud", "sub", "session_id", "ev", "iat", "exp", "mfa_at");
+    static final java.time.Duration PUBLISHER_FRESHNESS = java.time.Duration.ofMinutes(5);
     private final MapsIdentityProperties properties;
     private final Clock clock;
     private final PrivateKey signingKey;
     private final Map<String, PublicKey> keys;
 
-    public record Verified(UUID subject, String sessionId, long version, Instant issuedAt, Instant expiresAt) {}
+    private final String publisherPasswordHash;
+
+    public record Verified(UUID subject, String sessionId, long version, Instant issuedAt, Instant expiresAt, Instant mfaAt) {
+        public Verified(UUID subject, String sessionId, long version, Instant issuedAt, Instant expiresAt) {
+            this(subject, sessionId, version, issuedAt, expiresAt, null);
+        }
+    }
 
     public MapsSessionTokens(MapsIdentityProperties properties, Clock clock, ResourceLoader resources) {
         this.properties = properties;
@@ -79,6 +93,34 @@ public final class MapsSessionTokens {
         } catch (Exception ex) {
             throw new IllegalStateException("Maps signing configuration is unavailable");
         }
+        publisherPasswordHash = loadPublisherPassword(properties.getPublisherPasswordFile());
+    }
+
+    private static String loadPublisherPassword(String file) {
+        if (file == null) return null;
+        try {
+            Path path = Path.of(file);
+            if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw new IllegalArgumentException();
+            var permissions = Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS);
+            if (permissions.contains(PosixFilePermission.OTHERS_READ)
+                    || permissions.contains(PosixFilePermission.OTHERS_WRITE)
+                    || permissions.contains(PosixFilePermission.GROUP_WRITE)) throw new IllegalArgumentException();
+            try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
+                String hash = new String(input.readNBytes(63), StandardCharsets.US_ASCII).stripTrailing();
+                if (!hash.matches("\\$2[aby]\\$12\\$[./A-Za-z0-9]{53}")) throw new IllegalArgumentException();
+                return hash;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Maps publisher password configuration is unavailable");
+        }
+    }
+
+    Instant authenticatePublisher(UUID subject, String password) {
+        if (publisherPasswordHash == null || !subject.equals(properties.getPublisherSubject())
+                || !password.matches("[!-~]{16,72}")
+                || !new BCryptPasswordEncoder().matches(password, publisherPasswordHash))
+            throw new MapsIdentityException(INACTIVE);
+        return clock.instant().truncatedTo(ChronoUnit.SECONDS);
     }
 
     private static byte[] pem(ResourceLoader resources, String path, String label) throws Exception {
@@ -92,16 +134,23 @@ public final class MapsSessionTokens {
     }
 
     public String issue(AppUser user, SessionInfo session) {
+        return issue(user, session, null);
+    }
+
+    String issue(AppUser user, SessionInfo session, Instant mfaAt) {
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         Instant expiry = now.plus(properties.getCredentialLifetime());
         if (session.getAbsoluteExpiresAt().isBefore(expiry)) expiry = session.getAbsoluteExpiresAt().truncatedTo(ChronoUnit.SECONDS);
         if (!user.isActive() || user.getEntitlementsVersion() < 0 || session.getPurpose() != OtpPurpose.LOGIN
                 || !expiry.isAfter(now)) throw new MapsIdentityException(INACTIVE);
-        return Jwts.builder().setHeaderParam("typ", TYPE).setHeaderParam("kid", properties.getSigningKeyId())
+        var builder = Jwts.builder().setHeaderParam("typ", TYPE).setHeaderParam("kid", properties.getSigningKeyId())
                 .setIssuer(properties.getAuthority()).setAudience(properties.getAudience())
                 .setSubject(user.getId().toString()).claim("session_id", session.getSessionId())
-                .claim("ev", user.getEntitlementsVersion()).setIssuedAt(Date.from(now)).setExpiration(Date.from(expiry))
-                .signWith(signingKey, SignatureAlgorithm.RS256).compact();
+                .claim("ev", user.getEntitlementsVersion()).setIssuedAt(Date.from(now)).setExpiration(Date.from(expiry));
+        if (mfaAt != null && publisherPasswordHash != null && user.getId().equals(properties.getPublisherSubject())
+                && !mfaAt.isAfter(now) && now.isBefore(mfaAt.plus(PUBLISHER_FRESHNESS)))
+            builder.claim("mfa_at", mfaAt.getEpochSecond());
+        return builder.signWith(signingKey, SignatureAlgorithm.RS256).compact();
     }
 
     /** allowExpired is ONLY for session-specific revocation, never validation/refresh. */
@@ -113,7 +162,8 @@ public final class MapsSessionTokens {
             for (String part : parts) if (!part.matches("[A-Za-z0-9_-]+")) throw new IllegalArgumentException();
             JsonNode header = JSON.readValue(Base64.getUrlDecoder().decode(parts[0]));
             JsonNode body = JSON.readValue(Base64.getUrlDecoder().decode(parts[1]));
-            if (!exactKeys(header, HEADER) || !exactKeys(body, CLAIMS)
+            boolean publisher = exactKeys(body, PUBLISHER_CLAIMS);
+            if (!exactKeys(header, HEADER) || (!publisher && !exactKeys(body, CLAIMS))
                     || !"RS256".equals(text(header, "alg")) || !TYPE.equals(text(header, "typ"))) throw new IllegalArgumentException();
             PublicKey key = keys.get(text(header, "kid"));
             if (key == null) throw new IllegalArgumentException();
@@ -135,7 +185,9 @@ public final class MapsSessionTokens {
             Instant iat = Instant.ofEpochSecond(issued), exp = Instant.ofEpochSecond(expires), now = clock.instant();
             if (version < 0 || !exp.isAfter(iat) || exp.isAfter(iat.plus(properties.getCredentialLifetime()))
                     || iat.isAfter(now) || (!allowExpired && !exp.isAfter(now))) throw new IllegalArgumentException();
-            return new Verified(id, sid, version, iat, exp);
+            Instant mfaAt = publisher ? Instant.ofEpochSecond(number(body, "mfa_at")) : null;
+            if (mfaAt != null && (mfaAt.isBefore(Instant.EPOCH) || mfaAt.isAfter(iat))) throw new IllegalArgumentException();
+            return new Verified(id, sid, version, iat, exp, mfaAt);
         } catch (Exception ex) {
             throw new MapsIdentityException(INACTIVE);
         }
