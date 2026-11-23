@@ -22,6 +22,8 @@ public class MapsIdentityProperties {
     private Duration decisionLifetime = Duration.ofSeconds(1);
     private Duration requestTimeout = Duration.ofSeconds(2);
     private int concurrency = 8;
+    private java.util.UUID publisherSubject;
+    private String publisherPasswordFile;
 
     public void validate() {
         try {
@@ -38,6 +40,8 @@ public class MapsIdentityProperties {
                     || effectiveVerificationKeys().values().stream().anyMatch(v -> !v.startsWith("file:"))
                     || allowedPeers.isEmpty() || allowedPeers.size() > 16
                     || allowedPeers.stream().anyMatch(p -> p.length() > 256 || !URI.create(p).isAbsolute())
+                    || (publisherSubject == null) != (publisherPasswordFile == null)
+                    || publisherPasswordFile != null && !java.nio.file.Path.of(publisherPasswordFile).isAbsolute()
                     || concurrency < 1 || concurrency > 64
                     || credentialLifetime == null || credentialLifetime.isNegative() || credentialLifetime.isZero()
                     || credentialLifetime.compareTo(Duration.ofMinutes(15)) > 0

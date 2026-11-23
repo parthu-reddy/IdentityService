@@ -79,11 +79,26 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
             chain.doFilter(request, response); return;
         }
         long started = System.nanoTime();
-        String correlation = UUID.randomUUID().toString();
+        var requestCorrelation = new AtomicReference<>(UUID.randomUUID().toString().replace("-", ""));
         String operation = raw.startsWith(PREFIX) ? raw.substring(PREFIX.length()) : "unknown";
         try {
             if (!properties.isEnabled()) throw new MapsIdentityException(NOT_FOUND);
             peer.require(request);
+            // Only the directly authorised mTLS peer may supply this opaque ID.
+            // Browser and forwarded-certificate assertions cannot select it.
+            var ids = java.util.Collections.list(request.getHeaders("X-Request-ID"));
+            if (!ids.isEmpty()) {
+                if (ids.size() != 1 || !ids.getFirst().matches("[0-9a-f]{32}")) throw new MapsIdentityException(INVALID_REQUEST);
+                requestCorrelation.set(ids.getFirst());
+            }
+            if (raw.equals(PREFIX + "ready")) {
+                // Credential-free readiness for the authorised Maps adapter: proves the
+                // mTLS peer is admitted and this application answers. It never reads a
+                // session, user, cache or database, and records no per-call log line.
+                if (request.getQueryString() != null) throw new MapsIdentityException(INVALID_REQUEST);
+                if (!"GET".equals(request.getMethod())) throw new MapsIdentityException(METHOD_NOT_ALLOWED);
+                ready(response, started, requestCorrelation.get()); return;
+            }
             if (!MapsIdentityOperations.OPERATIONS.contains(operation) || !raw.equals(PREFIX + operation)
                     || request.getQueryString() != null) throw new MapsIdentityException(INVALID_REQUEST);
             if (!"POST".equals(request.getMethod())) throw new MapsIdentityException(METHOD_NOT_ALLOWED);
@@ -96,13 +111,13 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
             if (request.getContentLengthLong() > MAX_BODY_BYTES) throw new MapsIdentityException(TOO_LARGE);
             if (!request.isAsyncSupported()) throw new MapsIdentityException(UNAVAILABLE);
         } catch (MapsIdentityException denied) {
-            write(response, denied.code(), null, operation, started, correlation); return;
+            write(response, denied.code(), null, operation, started, requestCorrelation.get()); return;
         }
         // The request remains owned by the async servlet lifecycle until upload/response completes.
         // A bounded worker receives only immutable bytes; it never retains a servlet request.
         AsyncContext async = request.startAsync();
         if (!admitted.tryAcquire()) {
-            write(response, OVERLOADED, null, operation, started, correlation); async.complete(); return;
+            write(response, OVERLOADED, null, operation, started, requestCorrelation.get()); async.complete(); return;
         }
         // The owned timer is the actual deadline. A later servlet backup avoids two
         // completion callbacks racing at the same boundary and triggering Tomcat's
@@ -119,12 +134,13 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 if (!done.compareAndSet(false, true)) return;
                 if (code == null && System.nanoTime() >= deadline) { code = UNAVAILABLE; value = null; }
                 Future<?> expiry = timer.get(); if (expiry != null) expiry.cancel(false);
-                try { write(response, code, value, operation, started, correlation, retryAfterSeconds); }
+                try { write(response, code, value, operation, started, requestCorrelation.get(), retryAfterSeconds); }
                 catch (IOException lost) {
                     // A lost response is not proof a mutation did not commit, so it is never retried here; it is counted
-                    // and logged with its correlation id, so the caller's failed exchange can be matched to this one.
-                    metrics.counter("maps.identity.responses.lost", "operation", operation).increment();
-                    log.warn("maps_identity operation={} stage=response_lost correlation={} error={}", operation, correlation, lost.toString());
+                    // and logged with its correlation id (never the exception text) so the caller's failed exchange can be matched.
+                    String counted = MapsIdentityOperations.OPERATIONS.contains(operation) ? operation : "unknown";
+                    metrics.counter("maps.identity.responses.lost", "operation", counted).increment();
+                    log.warn("maps_identity operation={} stage=response_lost correlation={} cause={}", counted, requestCorrelation.get(), lost.getClass().getSimpleName());
                 }
                 finally { admitted.release(); async.complete(); }
             }
@@ -162,6 +178,8 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 try {
                     Future<?> submitted = workers.submit(() -> {
                         if (done.get() || System.nanoTime() >= deadline) { completion.finish(UNAVAILABLE, null); return; }
+                        // Only the opaque correlation enters the worker's log context, and only for this call.
+                        org.slf4j.MDC.put(com.fooddelivery.identity.service.MapsSessionTokens.CORRELATION, requestCorrelation.get());
                         try { completion.finish(null, operations.execute(operation, body)); }
                         catch (MapsIdentityException ex) { completion.finish(ex.code(), null); }
                         catch (MaxSessionsReachedException ex) {
@@ -173,10 +191,11 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                         }
                         catch (ResponseStatusException ex) {
                             int status = ex.getStatusCode().value();
-                            int retry = ex instanceof com.fooddelivery.identity.exception.MapsOtpRateLimitException limited
+                            int retry = ex instanceof com.fooddelivery.identity.exception.MapsRateLimitException limited
                                     ? limited.retryAfterSeconds() : 1;
                             completion.finish(status == 401 ? INACTIVE : status == 404 ? NOT_FOUND : status == 429 ? OVERLOADED : UNAVAILABLE, null, retry);
                         } catch (Exception ex) { completion.finish(UNAVAILABLE, null); }
+                        finally { org.slf4j.MDC.remove(com.fooddelivery.identity.service.MapsSessionTokens.CORRELATION); }
                     });
                     future.set(submitted);
                     if (done.get()) submitted.cancel(true);
@@ -209,6 +228,17 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 metricOperation, outcome, correlation, TimeUnit.NANOSECONDS.toMillis(elapsed));
         mapper.writeValue(response.getOutputStream(), code == null || value != null ? value
                 : Map.of("version", 1, "active", false, "code", code.name()));
+    }
+
+    private void ready(HttpServletResponse response, long started, String correlation) throws IOException {
+        response.setStatus(200);
+        response.setContentType("application/json");
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Request-ID", correlation);
+        metrics.timer("maps.identity.duration", "operation", "ready", "outcome", "completed")
+                .record(Duration.ofNanos(System.nanoTime() - started));
+        mapper.writeValue(response.getOutputStream(), Map.of("version", 1, "ready", true));
     }
 
     private static String bounded(String value) { return value == null ? "" : value.substring(0,Math.min(value.length(),80)); }

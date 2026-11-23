@@ -60,6 +60,25 @@ class MapsCurrentSessionServiceTest {
         session.setCreatedAt(now.minusSeconds(20)); when(clock.instant()).thenReturn(now.plusSeconds(60));
         assertThrows(MapsIdentityException.class, () -> current.validate("server-held-credential", "n".repeat(43)));
     }
+    @Test void currentMfaExpiresAtTheOriginalDeadlineAndRequiresTheConfiguredSubject() {
+        var challenge = now.minusSeconds(299).minusMillis(750);
+        properties.setPublisherSubject(id);
+        when(tokens.verify("server-held-credential", false)).thenReturn(
+                new MapsSessionTokens.Verified(id, sid, 4, now.minusSeconds(10), now.plusSeconds(60), challenge));
+        var active = current.validate("server-held-credential", "n".repeat(43));
+        assertEquals(now.plusMillis(250).toString(), active.get("valid_until"));
+        assertEquals(java.util.Map.of("mfa", true, "methods", java.util.List.of("otp", "password"),
+                "authenticated_at", challenge.toString()), active.get("authentication"));
+
+        properties.setPublisherSubject(UUID.randomUUID());
+        assertEquals(false, ((java.util.Map<?, ?>) current.validate("server-held-credential", "n".repeat(43))
+                .get("authentication")).get("mfa"));
+        properties.setPublisherSubject(id);
+        when(clock.instant()).thenReturn(now.plusMillis(250));
+        assertEquals(false, ((java.util.Map<?, ?>) current.validate("server-held-credential", "n".repeat(43))
+                .get("authentication")).get("mfa"));
+    }
+
     @Test void standbyAuthorityCannotProduceAnActiveDecision() {
         when(users.mapsAuthorityIsPrimary()).thenReturn(false);
         var error=assertThrows(MapsIdentityException.class,()->current.validate("server-held-credential","n".repeat(43)));

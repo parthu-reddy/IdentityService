@@ -51,3 +51,44 @@ privileged mode, deployment or recovery reopening is supplied here.
 The Maps profile disables raw ORM SQL/bind/exception diagnostics because database
 errors can echo caller-supplied unique values. Fixed Maps operation/stage/cause logs
 remain available. Effective external logging configuration is still an operator gate.
+
+## Credential time, key rotation and refusal diagnostics
+
+The verifier applies zero clock skew. Issue time is inclusive: `iat` equal to
+the current second is current, and any later `iat` is premature. Expiry is
+exclusive: `exp` equal to the current second is expired. Credentials are RS256
+only, carry exactly `alg`, `typ` and `kid` in the header, and are verified only
+against the configured `verification-key`/`verification-keys` set. A header that
+names its own key source (`jku`, `x5u`, `jwk`, `x5c`) or any other field is
+refused before key lookup; nothing is fetched.
+
+Rotation uses three configuration states of the same instance:
+
+1. Old only: `signing-key-id` names the old key, verified by the old key.
+2. Overlap: `signing-key-id` and the private key name the new key, and
+   `verification-keys` retains the old public key. Existing sessions keep their
+   old-key credentials until they refresh, while new credentials use the new key.
+3. Revoked: the old key is removed from `verification-keys`. Its credentials are
+   refused at key lookup on the next validation, refresh or logout check.
+
+Every change takes effect when the instance restarts with the new configuration.
+The overlap must last at least the 15-minute credential lifetime for old
+credentials to expire or refresh naturally. Removing the old key ends the
+overlap early for emergency revocation.
+
+Each refusal returns the same `INACTIVE` result. The service logs only
+`maps_credential operation=verify stage=<check> cause=rejected correlation=<id>`.
+The check is one of `format`, `header`, `claim_set`, `algorithm`, `type`,
+`key_id`, `signature`, `issuer`, `audience`, `subject`, `premature`, `expired`
+or `lifetime`. The correlation is the adapter's opaque request ID. Token bytes,
+claim values and subjects are never logged.
+
+## Edge readiness
+
+`GET /internal/maps/v1/ready` lets the Maps edge confirm that this instance
+accepts its mTLS peer without presenting a credential. Only an allowed peer
+certificate reaches it; it takes no query or body, touches no store or cache,
+writes no log line and answers exactly `{"version":1,"ready":true}` with
+`Cache-Control: no-store`. Any other method is `METHOD_NOT_ALLOWED` and a query
+string is `INVALID_REQUEST`. It records `maps.identity.duration` with
+`operation=ready`.

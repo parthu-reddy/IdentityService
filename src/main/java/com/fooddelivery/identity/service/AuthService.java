@@ -108,27 +108,35 @@ public class AuthService {
         // per-phone limit admits: a refused request sends nothing, so repeating one
         // phone must not exhaust the budget for every other Maps sign-in.
         var limits = limits(phone, OtpPurpose.LOGIN);
-        mapsOtpLimit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
-        mapsOtpLimit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
+        mapsLimit(limits.initiateKey(), limits.initiateMinutes(), limits.initiateMax());
+        mapsLimit("RATELIMIT:MAPS:OTP:GLOBAL", 1440, mapsOtpMaxPerDay);
         deliverOtp(phone, OtpPurpose.LOGIN);
     }
 
     @Transactional
     public SessionResponse createSession(SessionRequest request) {
-        return createPersonSession(request, null);
+        return createPersonSession(request, null, null);
     }
 
     /** Dedicated peer-authenticated Maps entry; the ordinary credential profile is unchanged. */
     @Transactional
     public SessionResponse createMapsSession(SessionRequest request) {
-        return createPersonSession(request, requireMapsTokens());
+        return createPersonSession(request, requireMapsTokens(), null);
     }
 
-    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens) {
+    @Transactional
+    public SessionResponse createMapsSession(SessionRequest request, String publisherPassword) {
+        return createPersonSession(request, requireMapsTokens(), publisherPassword);
+    }
+
+    private SessionResponse createPersonSession(SessionRequest request, MapsSessionTokens mapsTokens,
+                                                String publisherPassword) {
         String phone = validPhone(request.phoneNumber());
-        verifyOtp(phone, request.otp(), OtpPurpose.LOGIN);
+        verifyOtp(phone, request.otp(), OtpPurpose.LOGIN, mapsTokens != null);
         var provisioned = provisioner.findOrCreate(phone);
         var user = provisioned.user();
+        // Verify only after OTP admission, before any session is replaced or issued.
+        Instant mfaAt = publisherPassword == null ? null : mapsTokens.authenticatePublisher(user.getId(), publisherPassword);
         var candidate =
                 sessions.prepare(
                         user.getId(),
@@ -154,7 +162,7 @@ public class AuthService {
         cache.delete("RATELIMIT:VERIFY:" + phone);
         return new SessionResponse(
                 mapsTokens == null ? token(user, roles, candidate.get(candidate.size() - 1))
-                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1)), provisioned.created());
+                        : mapsTokens.issue(user, candidate.get(candidate.size() - 1), mfaAt), provisioned.created());
     }
 
     @Transactional
@@ -168,8 +176,8 @@ public class AuthService {
                 || verified.issuedAt().isBefore(session.getCreatedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)))
             throw new com.fooddelivery.identity.exception.MapsIdentityException(
                     com.fooddelivery.identity.exception.MapsIdentityException.Code.INACTIVE);
-        limit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
-        String credentialResult = tokens.issue(user, session);
+        mapsLimit(RedisKeyConstants.RL_SESSION_REFRESH + session.getSessionId(), 60, 30);
+        String credentialResult = tokens.issue(user, session, verified.mfaAt());
         sessions.touch(user.getId(), session.getSessionId());
         return new SessionResponse(credentialResult, false);
     }
@@ -341,9 +349,14 @@ public class AuthService {
     }
 
     private void verifyOtp(String phone, String otp, OtpPurpose purpose) {
+        verifyOtp(phone, otp, purpose, false);
+    }
+
+    private void verifyOtp(String phone, String otp, OtpPurpose purpose, boolean maps) {
         var limits = limits(phone, purpose);
         try {
-            limit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
+            if (maps) mapsLimit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
+            else limit(limits.verifyKey(), limits.verifyMinutes(), limits.verifyMax());
         } catch (ResponseStatusException ex) {
             cache.delete(otpKey(phone, purpose));
             throw ex;
@@ -363,14 +376,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired code");
     }
 
-    private void mapsOtpLimit(String key, long minutes, int maximum) {
+    private void mapsLimit(String key, long minutes, int maximum) {
         try {
             limit(key, minutes, maximum);
         } catch (ResponseStatusException refused) {
             if (refused.getStatusCode().value() != 429) throw refused;
             // CachePort has no TTL-read operation. Advertise the full configured
             // window conservatively; do not pretend this is its remaining TTL.
-            throw new com.fooddelivery.identity.exception.MapsOtpRateLimitException(
+            throw new com.fooddelivery.identity.exception.MapsRateLimitException(
                     Math.max(1, Math.min(86400, minutes * 60)));
         }
     }

@@ -157,6 +157,36 @@ class MapsIdentityTransportTest {
     HttpResponse<String> send(HttpClient client, String path, String body) throws Exception {
         return client.send(request(path).POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
+    @Test void authorisedPeerCorrelationReachesTheResponseAndSafeLog() throws Exception {
+        String correlation = "a".repeat(32);
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MapsIdentityFilter.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", correlation)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, result.statusCode());
+            assertEquals(correlation, result.headers().firstValue("X-Request-ID").orElseThrow());
+            assertTrue(logs.list.stream().anyMatch(e -> e.getFormattedMessage().contains("operation=validate")
+                    && e.getFormattedMessage().contains("correlation=" + correlation)));
+            assertTrue(logs.list.stream().noneMatch(e -> e.getFormattedMessage().contains(credential)));
+            var denied = unrelated.send(request("/internal/maps/v1/validate").header("X-Request-ID", correlation)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(403, denied.statusCode());
+            assertNotEquals(correlation, denied.headers().firstValue("X-Request-ID").orElseThrow());
+        } finally { logger.detachAppender(logs); logs.stop(); }
+    }
+    @Test void peerCorrelationRefusesMalformedAndDuplicateIds() throws Exception {
+        for (String id : List.of("do-not-log-this-private-canary", "a".repeat(33), "A".repeat(32))) {
+            var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", id)
+                    .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(400, result.statusCode());
+            assertNotEquals(id, result.headers().firstValue("X-Request-ID").orElseThrow());
+        }
+        var result = peer.send(request("/internal/maps/v1/validate").header("X-Request-ID", "a".repeat(32)).header("X-Request-ID", "b".repeat(32))
+                .POST(HttpRequest.BodyPublishers.ofString(body())).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, result.statusCode());
+    }
     @Test void staleReplacementIsNotAnAuthorityOutage() throws Exception {
         server.stop(); filter.close();
         var auth = mock(AuthService.class);
@@ -168,17 +198,22 @@ class MapsIdentityTransportTest {
         assertEquals(404, result.statusCode());
         assertEquals("NOT_FOUND", json.readTree(result.body()).path("code").asText());
     }
-    @Test void otpRefusalRetainsItsBoundedRetryWindow() throws Exception {
+    @Test void mapsRefusalsRetainTheirBoundedRetryWindows() throws Exception {
         server.stop(); filter.close();
         var auth = mock(AuthService.class);
-        var refusal = new com.fooddelivery.identity.exception.MapsOtpRateLimitException(600);
-        doThrow(refusal).when(auth).initiateMapsLogin(anyString());
+        doThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(600)).when(auth).initiateMapsLogin(anyString());
+        when(auth.createMapsSession(any())).thenThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(300));
+        when(auth.refreshMaps(anyString())).thenThrow(new com.fooddelivery.identity.exception.MapsRateLimitException(3600));
         startServer(null, auth);
-        String input = json.writeValueAsString(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43), "phone_number", "9000000042"));
-        var result = send(peer, "/internal/maps/v1/otp", input);
-        assertEquals(429, result.statusCode());
-        assertEquals("600", result.headers().firstValue("Retry-After").orElseThrow());
-        assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+        for (var entry : Map.of("otp", "600", "session", "300", "refresh", "3600").entrySet()) {
+            var input = new HashMap<String,Object>(Map.of("version", 1, "audience", "maps-editor", "nonce", "n".repeat(43)));
+            if (entry.getKey().equals("refresh")) input.put("credential", credential);
+            else { input.put("phone_number", "9000000042");if (entry.getKey().equals("session")) input.put("otp", "123456"); }
+            var result = send(peer, "/internal/maps/v1/"+entry.getKey(), json.writeValueAsString(input));
+            assertEquals(429, result.statusCode(), entry.getKey());
+            assertEquals(entry.getValue(), result.headers().firstValue("Retry-After").orElseThrow(), entry.getKey());
+            assertEquals("OVERLOADED", json.readTree(result.body()).path("code").asText());
+        }
     }
     @Test void aResponseTheConnectionLosesIsCountedAndTheExchangeStillCompletes() throws Exception {
         var keys = KeyStore.getInstance("PKCS12");
@@ -190,6 +225,7 @@ class MapsIdentityTransportTest {
         when(request.getRequestURI()).thenReturn("/internal/maps/v1/validate"); when(request.getContextPath()).thenReturn("");
         when(request.getServletPath()).thenReturn("/internal/maps/v1/validate"); when(request.isSecure()).thenReturn(true);
         when(request.getAttribute("jakarta.servlet.request.X509Certificate")).thenReturn(chain);
+        when(request.getHeaders("X-Request-ID")).thenReturn(Collections.emptyEnumeration());
         when(request.getMethod()).thenReturn("POST"); when(request.getContentType()).thenReturn("application/json");
         when(request.getContentLengthLong()).thenReturn((long) payload.length);
         when(request.isAsyncSupported()).thenReturn(true); when(request.startAsync()).thenReturn(async);
@@ -218,6 +254,24 @@ class MapsIdentityTransportTest {
         assertEquals(401, send(peer, "/internal/maps/v1/validate", body()).statusCode());
         stored.remove("BLACKLIST:SESSION:" + session.getSessionId()); user.setActive(false);
         assertEquals(401, send(peer, "/internal/maps/v1/validate", body()).statusCode());
+    }
+    @Test void readinessIsCredentialFreeAndOnlyForTheAuthorisedPeer() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MapsIdentityFilter.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            var ready = peer.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, ready.statusCode());
+            assertEquals(Map.of("version", 1, "ready", true), json.readValue(ready.body(), Map.class));
+            assertTrue(ready.headers().firstValue("Content-Type").orElse("").startsWith("application/json"));
+            assertEquals("no-store", ready.headers().firstValue("Cache-Control").orElse(""));
+            assertTrue(logs.list.isEmpty(), "readiness must not write a per-call log line");
+        } finally { logger.detachAppender(logs); }
+        assertEquals(405, send(peer, "/internal/maps/v1/ready", "{}").statusCode());
+        assertEquals(400, peer.send(request("/internal/maps/v1/ready?x=1").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(403, unrelated.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertThrows(java.io.IOException.class, () -> anonymous.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString()));
+        verifyNoInteractions(users, cache);
     }
     @Test void trustedButUnrelatedCertificateAndMissingCertificateCannotCallAuthority() throws Exception {
         assertEquals(403, send(unrelated, "/internal/maps/v1/validate", body()).statusCode());

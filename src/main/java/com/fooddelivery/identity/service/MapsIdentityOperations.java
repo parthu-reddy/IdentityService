@@ -51,7 +51,7 @@ public final class MapsIdentityOperations {
             var allowed = new HashSet<>(Set.of("version", "audience", "nonce"));
             switch (operation) {
                 case "otp" -> allowed.add("phone_number");
-                case "session" -> allowed.addAll(Set.of("phone_number", "otp", "device_info", "os", "browser", "replace_session_id"));
+                case "session" -> allowed.addAll(Set.of("phone_number", "otp", "device_info", "os", "browser", "replace_session_id", "publisher_password"));
                 case "validate", "refresh", "logout" -> allowed.add("credential");
                 default -> throw new MapsIdentityException(NOT_FOUND);
             }
@@ -70,7 +70,10 @@ public final class MapsIdentityOperations {
                     if (!validator.validate(input).isEmpty()) throw new MapsIdentityException(INVALID_REQUEST);
                     if (input.replaceSessionId() != null && !UUID.fromString(input.replaceSessionId()).toString().equals(input.replaceSessionId()))
                         throw new MapsIdentityException(INVALID_REQUEST);
-                    return credential(nonce, auth.createMapsSession(input).token());
+                    String password = string(request, "publisher_password", true);
+                    if (password != null && !password.matches("[!-~]{16,72}")) throw new MapsIdentityException(INVALID_REQUEST);
+                    return credential(nonce, (password == null ? auth.createMapsSession(input)
+                            : auth.createMapsSession(input, password)).token());
                 }
                 case "validate" -> { return current.validate(credential(request), nonce); }
                 case "refresh" -> { return credential(nonce, auth.refreshMaps(credential(request)).token()); }

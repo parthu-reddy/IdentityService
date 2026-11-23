@@ -231,6 +231,39 @@ class AuthServiceTest {
         when(cache.increment("RATELIMIT:VERIFY:"+phone,5)).thenReturn(6L);refuses(429,this::login);
         assertNull(stored.get("OTP:"+phone+":LOGIN"));verify(users,never()).saveAndFlush(any());
     }
+    @Test void mapsVerificationRefusalRetainsItsWindowAndDeletesCodeWithoutChangingFoodDelivery() throws Exception {
+        var temp=java.nio.file.Files.createTempDirectory("maps-auth-fixture-");
+        try {
+            var tokens=new MapsSessionTokens(MapsSessionTokensTest.configured(temp,KeyPairGenerator.getInstance("RSA").generateKeyPair()),clock,new org.springframework.core.io.DefaultResourceLoader());
+            var provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+            when(provider.getIfAvailable()).thenReturn(tokens);ReflectionTestUtils.setField(auth,"mapsSessionTokens",provider);
+            when(cache.increment("RATELIMIT:VERIFY:"+phone,5)).thenReturn(6L);
+            assertEquals("300",refuses(429,()->auth.createMapsSession(request("macOS","Chromium",null))).getHeaders().getFirst("Retry-After"));
+            assertNull(stored.get("OTP:"+phone+":LOGIN"));verify(cache,never()).consumeOtp(anyString(),anyString());
+            verify(users,never()).saveAndFlush(any());
+            stored.put("OTP:"+phone+":LOGIN",code);
+            assertNull(refuses(429,this::login).getHeaders().getFirst("Retry-After"));
+            assertNull(stored.get("OTP:"+phone+":LOGIN"));
+        } finally {
+            try(var paths=java.nio.file.Files.walk(temp)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}
+        }
+    }
+    @Test void mapsRefreshRefusalRetainsItsWindowWithoutTouchingSessionOrChangingFoodDelivery() throws Exception {
+        var temp=java.nio.file.Files.createTempDirectory("maps-auth-fixture-");
+        try {
+            var tokens=new MapsSessionTokens(MapsSessionTokensTest.configured(temp,KeyPairGenerator.getInstance("RSA").generateKeyPair()),clock,new org.springframework.core.io.DefaultResourceLoader());
+            var provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+            when(provider.getIfAvailable()).thenReturn(tokens);ReflectionTestUtils.setField(auth,"mapsSessionTokens",provider);
+            String credential=auth.createMapsSession(request("macOS","Chromium",null)).token();
+            String sid=tokens.verify(credential,false).sessionId(),before=stored.get("USER_SESSIONS:"+user.getId());
+            when(cache.increment(com.fooddelivery.common.constants.RedisKeyConstants.RL_SESSION_REFRESH+sid,60)).thenReturn(31L);
+            assertEquals("3600",refuses(429,()->auth.refreshMaps(credential)).getHeaders().getFirst("Retry-After"));
+            assertEquals(before,stored.get("USER_SESSIONS:"+user.getId()));
+            assertNull(refuses(429,()->auth.refresh(user.getId(),sid)).getHeaders().getFirst("Retry-After"));
+        } finally {
+            try(var paths=java.nio.file.Files.walk(temp)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}
+        }
+    }
     @Test void mapsNotificationBudgetIsSharedAndFailsBeforeAnyNotification() {
         when(cache.increment("RATELIMIT:MAPS:OTP:GLOBAL",1440)).thenReturn(1001L);
         assertEquals("86400", refuses(429,()->auth.initiateMapsLogin(phone)).getHeaders().getFirst("Retry-After"));verifyNoInteractions(events);
