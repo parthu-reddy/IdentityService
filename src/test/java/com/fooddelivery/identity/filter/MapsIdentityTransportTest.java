@@ -290,6 +290,24 @@ class MapsIdentityTransportTest {
             assertEquals(503,send(peer,"/internal/maps/v1/validate",body()).statusCode());
         }
     }
+    @Test void readinessIsCredentialFreeAndOnlyForTheAuthorisedPeer() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MapsIdentityFilter.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            var ready = peer.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, ready.statusCode());
+            assertEquals(Map.of("version", 1, "ready", true), json.readValue(ready.body(), Map.class));
+            assertTrue(ready.headers().firstValue("Content-Type").orElse("").startsWith("application/json"));
+            assertEquals("no-store", ready.headers().firstValue("Cache-Control").orElse(""));
+            assertTrue(logs.list.isEmpty(), "readiness must not write a per-call log line");
+        } finally { logger.detachAppender(logs); }
+        assertEquals(405, send(peer, "/internal/maps/v1/ready", "{}").statusCode());
+        assertEquals(400, peer.send(request("/internal/maps/v1/ready?x=1").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(403, unrelated.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertThrows(java.io.IOException.class, () -> anonymous.send(request("/internal/maps/v1/ready").GET().build(), HttpResponse.BodyHandlers.ofString()));
+        verifyNoInteractions(users, cache);
+    }
     @Test void trustedButUnrelatedCertificateAndMissingCertificateCannotCallAuthority() throws Exception {
         assertEquals(403, send(unrelated, "/internal/maps/v1/validate", body()).statusCode());
         assertThrows(java.io.IOException.class, () -> send(anonymous, "/internal/maps/v1/validate", body()));

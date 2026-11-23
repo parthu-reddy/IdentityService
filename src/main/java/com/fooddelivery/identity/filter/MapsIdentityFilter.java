@@ -91,6 +91,14 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 if (ids.size() != 1 || !ids.getFirst().matches("[0-9a-f]{32}")) throw new MapsIdentityException(INVALID_REQUEST);
                 requestCorrelation.set(ids.getFirst());
             }
+            if (raw.equals(PREFIX + "ready")) {
+                // Credential-free readiness for the authorised Maps adapter: proves the
+                // mTLS peer is admitted and this application answers. It never reads a
+                // session, user, cache or database, and records no per-call log line.
+                if (request.getQueryString() != null) throw new MapsIdentityException(INVALID_REQUEST);
+                if (!"GET".equals(request.getMethod())) throw new MapsIdentityException(METHOD_NOT_ALLOWED);
+                ready(response, started, requestCorrelation.get()); return;
+            }
             if (!MapsIdentityOperations.OPERATIONS.contains(operation) || !raw.equals(PREFIX + operation)
                     || request.getQueryString() != null) throw new MapsIdentityException(INVALID_REQUEST);
             if (!"POST".equals(request.getMethod())) throw new MapsIdentityException(METHOD_NOT_ALLOWED);
@@ -214,6 +222,17 @@ public final class MapsIdentityFilter extends OncePerRequestFilter implements Au
                 metricOperation, outcome, correlation, TimeUnit.NANOSECONDS.toMillis(elapsed));
         mapper.writeValue(response.getOutputStream(), code == null || value != null ? value
                 : Map.of("version", 1, "active", false, "code", code.name()));
+    }
+
+    private void ready(HttpServletResponse response, long started, String correlation) throws IOException {
+        response.setStatus(200);
+        response.setContentType("application/json");
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Request-ID", correlation);
+        metrics.timer("maps.identity.duration", "operation", "ready", "outcome", "completed")
+                .record(Duration.ofNanos(System.nanoTime() - started));
+        mapper.writeValue(response.getOutputStream(), Map.of("version", 1, "ready", true));
     }
 
     private static String bounded(String value) { return value == null ? "" : value.substring(0,Math.min(value.length(),80)); }
