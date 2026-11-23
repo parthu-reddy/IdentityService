@@ -31,40 +31,22 @@ Each whole request, including upload, has a two-second deadline. Bounded workers
 have no task queue; a timed-out operation retains its executing worker until it
 actually exits. Dependency failures use fixed finite responses and safe metadata.
 Writes may commit despite a lost response; no automatic mutation retry is added.
+A lost response is counted (`maps.identity.responses.lost`, by operation) and logged at WARN
+with its correlation id (`stage=response_lost`).
 The exact contract, limits, selected D01–D10 decisions and remaining gates are in
 [the integration handoff](https://github.com/parthu-reddy/RandomDocuments/pull/6).
 
 Tests include strict persisted session authority, scoped token crypto/time/type,
 key overlap/retirement, current service behavior, actual servlet mTLS/peer/slow
 upload boundaries, profile guards and existing compatibility/architecture suites.
-`MAPS_GO_CONTRACT_PROBE` may point to the owned compiled Maps identity test
-executable; the HTTPS transport test invokes its real Go decoder against active
-and disabled current Java decisions. DB/cache ports in that fixture are isolated
-mocks. It is not complete Java+Redis+DB+product or recovery/load acceptance.
+These are unit tests with mocked DB and cache ports. Integration tests against the Go
+consumer or real stores belong in the Go repository, never in this one.
 
 Build shared artifacts from their exact current source in a private Maven cache;
 do not trust an unrelated installed SNAPSHOT or copy generated schemas to hide
 that drift. The companion handoff supplies a reproducible JDK 21 runner and
 first-failure/current artifact identities. No production secrets, admission,
 privileged mode, deployment or recovery reopening is supplied here.
-
-## Native authority continuation
-
-The owning TLS test now has an explicit disposable PostgreSQL/Redis variant using
-production Flyway/JPA/transaction/Redis code and a restricted non-superuser runtime
-role. It checks concurrent OTP consumption/replay, passive TTL/activity non-renewal,
-current disable/version/revocation, refresh/logout ordering, corrupt/unavailable
-authority and denial of schema/migration writes. The real Go relay joins this
-fixture for OTP/login/current checks, cross-adapter persistence, refresh and confirmed
-Java logout. Its gateway request boundary is the existing in-process test fixture;
-notifications and unused entitlement/audit ports remain test doubles.
-
-The companion PR supplies `tools/native_authority.py` with pinned capped ARM64
-images, protected disposable configuration, private logs, exact cleanup and optional
-`--clean-verify`. A complete clean run passed 268 tests with no failures/errors/skips.
-Default invocations explicitly skip the native case unless the owned native config
-is supplied. See the current source-bound evidence in
-[the review package](https://github.com/parthu-reddy/RandomDocuments/pull/6).
 
 The Maps profile disables raw ORM SQL/bind/exception diagnostics because database
 errors can echo caller-supplied unique values. Fixed Maps operation/stage/cause logs
@@ -100,3 +82,13 @@ The check is one of `format`, `header`, `claim_set`, `algorithm`, `type`,
 `key_id`, `signature`, `issuer`, `audience`, `subject`, `premature`, `expired`
 or `lifetime`. The correlation is the adapter's opaque request ID. Token bytes,
 claim values and subjects are never logged.
+
+## Edge readiness
+
+`GET /internal/maps/v1/ready` lets the Maps edge confirm that this instance
+accepts its mTLS peer without presenting a credential. Only an allowed peer
+certificate reaches it; it takes no query or body, touches no store or cache,
+writes no log line and answers exactly `{"version":1,"ready":true}` with
+`Cache-Control: no-store`. Any other method is `METHOD_NOT_ALLOWED` and a query
+string is `INVALID_REQUEST`. It records `maps.identity.duration` with
+`operation=ready`.

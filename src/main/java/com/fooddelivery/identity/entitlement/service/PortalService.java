@@ -3,6 +3,7 @@ package com.fooddelivery.identity.entitlement.service;
 import com.fooddelivery.common.enums.*;
 import com.fooddelivery.identity.entitlement.dto.PortalViews.*;
 import com.fooddelivery.identity.entitlement.entity.BusinessEntitlement;
+import com.fooddelivery.identity.entitlement.entity.KitchenEntitlement;
 import com.fooddelivery.identity.entitlement.repository.*;
 import com.fooddelivery.identity.organisation.entity.*;
 import com.fooddelivery.identity.organisation.repository.*;
@@ -73,16 +74,18 @@ public class PortalService {
         var rider = delivery.findById(userId);
         // Kitchen staff are not members: outlet details come from GET /api/v1/kitchen/me/workplaces.
         var kitchen = entitlements.liveKitchen(List.of(user));
-        var kitchenOpen = !entitlements.kitchenOrganisations(kitchen).isEmpty();
+        var kitchenOrgs = entitlements.kitchenOrganisations(kitchen);
+        var kitchenOpen = !kitchenOrgs.isEmpty();
         return List.of(
-                new PortalView(Portal.CUSTOMER, State.AVAILABLE, List.of(), null),
+                new PortalView(Portal.CUSTOMER, State.AVAILABLE, List.of(), null, null),
                 businessPortal(Portal.RESTAURANT, restaurants),
                 new PortalView(
                         Portal.DELIVERY,
                         rider.map(e -> applicationState(e.getApplicationStatus()))
                                 .orElse(State.NOT_STARTED),
                         List.of(),
-                        rider.map(e -> e.getReason()).orElse(null)),
+                        rider.map(e -> e.getReason()).orElse(null),
+                        null),
                 businessPortal(Portal.BUSINESS, orgViews),
                 businessPortal(Portal.ADS, ads),
                 new PortalView(
@@ -93,32 +96,48 @@ public class PortalService {
                         List.of(),
                         kitchen.isEmpty() || kitchenOpen
                                 ? null
-                                : "Restaurant access is suspended or closed"),
+                                : "Restaurant access is suspended or closed",
+                        kitchenOpen ? kitchenRoles(kitchen, kitchenOrgs) : null),
                 new PortalView(
                         Portal.ADMIN,
                         entitlements.isAdministrator(userId)
                                 ? State.STEP_UP_REQUIRED
                                 : State.UNAVAILABLE,
                         List.of(),
+                        null,
                         null));
     }
 
+    /** Every role held in an open kitchen, in {@link KitchenRole} order; rows in closed organisations name nothing. */
+    private static List<KitchenRole> kitchenRoles(List<KitchenEntitlement> live, Set<UUID> openOrgs) {
+        var held = EnumSet.noneOf(KitchenRole.class);
+        live.stream()
+                .filter(k -> openOrgs.contains(k.getOrganisationId()))
+                .forEach(
+                        k -> {
+                            if (k.isManager()) held.add(KitchenRole.MANAGER);
+                            if (k.isChef()) held.add(KitchenRole.CHEF);
+                            if (k.isWaiter()) held.add(KitchenRole.WAITER);
+                        });
+        return List.copyOf(held);
+    }
+
     private static PortalView businessPortal(Portal portal, List<OrganisationPortal> orgs) {
-        if (orgs.isEmpty()) return new PortalView(portal, State.NOT_STARTED, List.of(), null);
+        if (orgs.isEmpty()) return new PortalView(portal, State.NOT_STARTED, List.of(), null, null);
         var active = orgs.stream().filter(o -> o.status() == OrganisationStatus.ACTIVE).toList();
         if (active.isEmpty())
             return new PortalView(
-                    portal, State.SUSPENDED, orgs, "Organisation access is suspended or closed");
+                    portal, State.SUSPENDED, orgs, "Organisation access is suspended or closed", null);
         var items = active.stream().flatMap(o -> o.businesses().stream()).toList();
         if (items.stream().anyMatch(b -> b.applicationStatus() == ApplicationStatus.APPROVED))
-            return new PortalView(portal, State.AVAILABLE, orgs, null);
-        if (items.isEmpty()) return new PortalView(portal, State.ACTION_REQUIRED, orgs, null);
+            return new PortalView(portal, State.AVAILABLE, orgs, null, null);
+        if (items.isEmpty()) return new PortalView(portal, State.ACTION_REQUIRED, orgs, null, null);
         var selected =
                 items.stream()
                         .min(Comparator.comparingInt(b -> priority(b.applicationStatus())))
                         .orElseThrow();
         return new PortalView(
-                portal, applicationState(selected.applicationStatus()), orgs, selected.reason());
+                portal, applicationState(selected.applicationStatus()), orgs, selected.reason(), null);
     }
 
     private static int priority(ApplicationStatus status) {

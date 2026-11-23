@@ -12,5 +12,9 @@ public final class PortalViews {
     public record OrganisationPortal(UUID organisationId,String displayName,OrganisationRole role,OrganisationStatus status,
                                      List<BusinessView> businesses) { }
     @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-    public record PortalView(Portal portal,State state,List<OrganisationPortal> organisations,String reason) { }
+    /**
+     * One launcher tile. {@code kitchenRoles} is set on KITCHEN only, while it is AVAILABLE: every role the person holds in
+     * an open kitchen, in {@link KitchenRole} order, so the tile is named for the work (Kitchen, Floor, or both).
+     */
+    public record PortalView(Portal portal,State state,List<OrganisationPortal> organisations,String reason,List<KitchenRole> kitchenRoles) { }
 }
